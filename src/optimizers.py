@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 class AdamOptimizer:
-    def __init__(self, alpha=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+    def __init__(self, alpha=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-8):
 
         self.alpha = alpha
         self.beta1 = beta1
@@ -19,6 +19,7 @@ class AdamOptimizer:
 
     def apply_gradients(self, gvs):
         t = self.t.assign_add(1.0)
+        gvs = [(tf.clip_by_value(grad, -0.99, 0.99), var) for grad, var in gvs]
 
         update_ops = []
         for (g, v) in gvs:

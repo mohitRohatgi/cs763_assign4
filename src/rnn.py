@@ -5,14 +5,14 @@ from src.optimizers import AdamOptimizer
 
 class Rnn:
     def __init__(self, input_dimension, hidden_dimension, index=0):
-        with tf.variable_scope("rnn_"+ str(index)):
+        with tf.variable_scope("rnn_" + str(index)):
             self.config = Config()
-            self.initial_state = tf.get_variable(shape=[self.config.batch_size, hidden_dimension], name="initial_state",
-                                                 initializer=tf.random_uniform_initializer())
+            self.initial_state = tf.get_variable(shape=[self.config.batch_size, hidden_dimension], name="initial_state_"
+                                                 + str(index), initializer=tf.random_uniform_initializer())
             self.initial_state_grad = None
-            self.W = tf.get_variable(name="W", shape=[input_dimension + hidden_dimension, hidden_dimension],
+            self.W = tf.get_variable(name="W_" + str(index), shape=[input_dimension + hidden_dimension, hidden_dimension],
                                      initializer=tf.contrib.layers.xavier_initializer())
-            self.B = tf.get_variable(name="B", shape=[hidden_dimension],
+            self.B = tf.get_variable(name="B_" + str(index), shape=[hidden_dimension],
                                      initializer=tf.random_uniform_initializer())
             self.gradW = tf.get_variable(name="gradW", shape=[input_dimension + hidden_dimension, hidden_dimension],
                                          initializer=tf.zeros_initializer(), trainable=False)
@@ -21,7 +21,7 @@ class Rnn:
             self.outputs = []
             self.outputs.append(self.initial_state)
             # TODO: implement optimizer in optimizer module.
-            self.optimizer = AdamOptimizer()
+            self.optimizer = AdamOptimizer(1e-5)
 
     # considering forward to move forward only one time step.
     # input_vec is a tensor of shape -> None, input_dimension.
