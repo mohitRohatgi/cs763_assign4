@@ -1,7 +1,7 @@
 class Config:
     lr = 1e-4
     seq_length = 2948
-    batch_size = 64
+    batch_size = 32
     output_size = 1
     n_layers = 1
     hidden_dim = 256

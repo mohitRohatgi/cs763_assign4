@@ -44,7 +44,7 @@ class Model:
         self.models = []
         with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
             for i in range(n_layers):
-                self.models.append(Rnn(v, h))
+                self.models.append(Rnn(v, h, i))
 
             with tf.variable_scope("projection", reuse=tf.AUTO_REUSE):
                 self.U = tf.get_variable(name="U", shape=[h, self.config.num_classes],
@@ -71,8 +71,8 @@ class Model:
             if index < -len(input_vecs):
                 index = 0
             grad_output = self.backward(input_vecs[index], grad_output, self.config.truncated_delta)
-            # for model in self.models:
-            #     grad_updates.append(model.apply_gradients(index == 0))
+            for model in self.models:
+                grad_updates.append(model.apply_gradients(index == 0))
 
         feed_dict = {
             self.input_placeholder: train_data,

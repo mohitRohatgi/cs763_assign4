@@ -1,5 +1,3 @@
-# TODO: implement Adam, gradient descent and Adagrad.
-
 import tensorflow as tf
 
 

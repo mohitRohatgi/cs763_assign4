@@ -4,19 +4,20 @@ from src.optimizers import AdamOptimizer
 
 
 class Rnn:
-    def __init__(self, input_dimension, hidden_dimension):
-        with tf.variable_scope("rnn"):
+    def __init__(self, input_dimension, hidden_dimension, index=0):
+        with tf.variable_scope("rnn_"+ str(index)):
             self.config = Config()
-            self.initial_state = tf.zeros([self.config.batch_size, hidden_dimension], name="initial_state")
+            self.initial_state = tf.get_variable(shape=[self.config.batch_size, hidden_dimension], name="initial_state",
+                                                 initializer=tf.random_uniform_initializer())
             self.initial_state_grad = None
             self.W = tf.get_variable(name="W", shape=[input_dimension + hidden_dimension, hidden_dimension],
                                      initializer=tf.contrib.layers.xavier_initializer())
             self.B = tf.get_variable(name="B", shape=[hidden_dimension],
                                      initializer=tf.random_uniform_initializer())
             self.gradW = tf.get_variable(name="gradW", shape=[input_dimension + hidden_dimension, hidden_dimension],
-                                         initializer=tf.zeros_initializer())
+                                         initializer=tf.zeros_initializer(), trainable=False)
             self.gradB = tf.get_variable(name="gradB", shape=[hidden_dimension, 1],
-                                         initializer=tf.zeros_initializer())
+                                         initializer=tf.zeros_initializer(), trainable=False)
             self.outputs = []
             self.outputs.append(self.initial_state)
             # TODO: implement optimizer in optimizer module.
