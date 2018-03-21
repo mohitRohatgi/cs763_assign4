@@ -6,6 +6,8 @@ from config import Config
 # TODO: add dropouts in the model.
 # TODO: add valid step.
 # TODO: make directory model_name and save model and loss in the folder.
+# TODO: split data into train and valid.
+# TODO: add random picking of data points from batches of train set and valid set.
 
 
 def main():
