@@ -14,13 +14,18 @@ class Model:
         self.isTrain = is_train
         self.config = Config()
         self.criterion = Criterion()
-        self.input_placeholder = tf.placeholder(tf.float32, shape=(self.config.batch_size, self.config.seq_length, v))
+        self.input_placeholder = tf.placeholder(tf.int32, shape=(self.config.batch_size, self.config.seq_length))
         self.output_placeholder = tf.placeholder(tf.int32, shape=(self.config.batch_size, ))
         self.optimizer = tf.train.AdamOptimizer(self.config.lr)
         self.models = []
         with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
             for i in range(n_layers):
-                self.models.append(Rnn(v, h, i))
+                self.models.append(Rnn(d, h, i))
+
+            with tf.variable_scope("embeddings", reuse=tf.AUTO_REUSE):
+                embedding = tf.get_variable("embedding", shape=(v, d),
+                                            initializer=tf.random_uniform_initializer(-1, 1), trainable=True)
+                self.inputs = tf.nn.embedding_lookup(embedding, self.input_placeholder)
 
             with tf.variable_scope("projection", reuse=tf.AUTO_REUSE):
                 self.U = tf.get_variable(name="U", shape=[h, self.config.num_classes],
@@ -50,13 +55,34 @@ class Model:
 
         return grad_outputs[-1][0]
 
+    def run_batch(self, sess: tf.Session, train_data, label_data):
+        feed_dict = {
+            self.input_placeholder: train_data,
+            self.output_placeholder: label_data
+        }
+
+        if self.isTrain:
+            loss, accuracy, prediction, _ = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor,
+                                                      self.grad_updates], feed_dict)
+        else:
+            loss, accuracy, prediction = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor], feed_dict)
+        return loss, accuracy, prediction
+
+    def score(self):
+        projection_output = tf.matmul(self.models[-1].outputs[-1], self.U) + self.B
+        return tf.sigmoid(projection_output)
+
+    # TODO: find roc curve and implement thresholds for prediction.
+    def predict(self, scores):
+        return tf.cast(tf.round(scores), tf.int32)
+
     # add model in this method.
     # assumption is first layer is placed at index 0.
     def _construct_model(self):
         input_vecs = []
         # TODO: change to seq_length
         for i in range(10):
-            input_vec = tf.squeeze(self.input_placeholder[:, i:i + 1, :], axis=1)
+            input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
             input_vecs.append(self.forward(input_vec))
         scores = self.score()
         grad_output = self.criterion.backward(scores, self.output_placeholder)
@@ -78,24 +104,3 @@ class Model:
         self.prediction_tensor = self.predict(scores)
         self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
                                                       tf.float32))
-
-    def run_batch(self, sess: tf.Session, train_data, label_data):
-        feed_dict = {
-            self.input_placeholder: train_data,
-            self.output_placeholder: label_data
-        }
-
-        if self.isTrain:
-            loss, accuracy, prediction, _ = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor,
-                                                      self.grad_updates], feed_dict)
-        else:
-            loss, accuracy, prediction = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor], feed_dict)
-        return loss, accuracy, prediction
-
-    def score(self):
-        projection_output = tf.matmul(self.models[-1].outputs[-1], self.U) + self.B
-        return tf.sigmoid(projection_output)
-
-    # TODO: find roc curve and implement thresholds for prediction.
-    def predict(self, scores):
-        return tf.cast(tf.round(scores), tf.int32)

@@ -18,7 +18,7 @@ def main():
     config = Config()
     train_data, label_data = get_data_iterator(train_path, labels_path, config.seq_length, config.batch_size)
 
-    model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.input_dimension)
+    model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.embed_size)
     with tf.Session().as_default() as sess:
         step = 0
         sess.run(tf.global_variables_initializer())
