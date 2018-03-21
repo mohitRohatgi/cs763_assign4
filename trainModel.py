@@ -3,9 +3,11 @@ from src.model import Model
 from utils import get_data_iterator
 from config import Config
 
-# TODO: make directory model_name and save model and loss in the folder.
 # TODO: split data into train and valid.
+# TODO: make directory model_name and save model and loss(train and valid) data in the folder.
+# TODO: save best model data(graph details).
 # TODO: add valid step.
+# TODO: save models.
 # TODO: fit the data.
 
 

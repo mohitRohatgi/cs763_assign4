@@ -1,12 +1,13 @@
 import numpy as np
 
 
-# in vocab 0 signifies no sys call (padding)
+# TODO: handle the case where vocabulary unk.
+# 0 signifies no sys call (padding), <UNK> signifies unknown sys call.
 def load_data(train_path):
     data_file = open(train_path, 'r')
     sys_calls = []
-    vocab = {'0': 0}
-    i = 1
+    vocab = {'0': 0, '<UNK>': 1}
+    i = 2
     for line in data_file.readlines():
         strip_line = line.strip().split(" ")
         for j, call in enumerate(strip_line):

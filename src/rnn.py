@@ -4,7 +4,6 @@ from src.optimizers import AdamOptimizer
 import numpy as np
 
 
-# TODO: implement truncated BPTT.
 # adding index for identifying the rnn layer.
 class Rnn:
     def __init__(self, input_dimension, hidden_dimension, dropout_tensor, index=0):
@@ -69,13 +68,11 @@ class Rnn:
             self.initial_state_grad = tf.gradients(ys=ys, xs=self.initial_state, grad_ys=grad_output)
         return input_vec_grads
 
-    # TODO: change output fetching.
     def get_output(self):
         if self.extracted * self.config.truncated_delta > len(self.outputs):
             return self.outputs[1]
         return self.outputs[-self.extracted * self.config.truncated_delta]
 
-    # TODO: check truncated BPTT.
     def apply_gradients(self):
         self.gradW = tf.add_n(self.gradWs) / (self.config.truncated_delta * self.config.batch_size)
         self.gradB = tf.add_n(self.gradBs) / (self.config.truncated_delta * self.config.batch_size)
