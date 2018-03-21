@@ -14,8 +14,8 @@ class Model:
         self.isTrain = is_train
         self.config = Config()
         self.criterion = Criterion()
-        self.input_placeholder = tf.placeholder(tf.int32, shape=(self.config.batch_size, self.config.seq_length))
-        self.output_placeholder = tf.placeholder(tf.int32, shape=(self.config.batch_size, ))
+        self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.seq_length))
+        self.output_placeholder = tf.placeholder(tf.int32, shape=(None, ))
         self.optimizer = tf.train.AdamOptimizer(self.config.lr)
         self.models = []
         with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
@@ -80,8 +80,7 @@ class Model:
     # assumption is first layer is placed at index 0.
     def _construct_model(self):
         input_vecs = []
-        # TODO: change to seq_length
-        for i in range(10):
+        for i in range(self.config.num_steps):
             input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
             input_vecs.append(self.forward(input_vec))
         scores = self.score()
@@ -91,8 +90,7 @@ class Model:
         self.optimizer.minimize(loss=self.loss, var_list=[self.U, self.B])
         index = -1
         self.grad_updates = []
-        # TODO: change to seq_length
-        for _ in range(int(np.ceil(self.config.dummy / float(self.config.truncated_delta)))):
+        for _ in range(int(np.ceil(self.config.num_steps / float(self.config.truncated_delta)))):
             index -= self.config.truncated_delta
             if index < -len(input_vecs):
                 index = 0

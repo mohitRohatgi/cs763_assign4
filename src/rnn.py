@@ -49,7 +49,7 @@ class Rnn:
     # adding a variable, window, to be used for deciding the window for truncated BPTT.
     def backward(self, input_vec, grad_output):
         input_vec_grads = np.empty(2, dtype=object)
-        stop = self.config.dummy - self.extracted * self.config.truncated_delta
+        stop = self.config.num_steps - self.extracted * self.config.truncated_delta
         start = stop - self.config.truncated_delta
         if start < 0:
             start = 0

@@ -18,7 +18,8 @@ def main():
     train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
     labels_path = '/Users/mohitrohatgi/Downloads/assign4/train_labels.txt'
     config = Config()
-    train_data, label_data = get_data_iterator(train_path, labels_path, config.seq_length, config.batch_size)
+    train_data, label_data = get_data_iterator(config.n_epoch, train_path, labels_path, config.seq_length,
+                                               config.batch_size)
 
     model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.embed_size)
     with tf.Session().as_default() as sess:
