@@ -1,6 +1,5 @@
 import tensorflow as tf
 from src.model import Model
-from src.criterion import Criterion
 from utils import get_data_iterator
 from config import Config
 
@@ -19,12 +18,12 @@ def main():
     config = Config()
     train_data, label_data = get_data_iterator(train_path, labels_path, config.seq_length, config.batch_size)
 
-    criterion = Criterion()
     model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.input_dimension)
     with tf.Session().as_default() as sess:
         step = 0
+        sess.run(tf.global_variables_initializer())
         for train_batch_data, label_batch_data in zip(train_data, label_data):
-            loss, accuracy, prediction = model.run_batch(sess, criterion, train_batch_data, label_batch_data)
+            loss, accuracy, prediction = model.run_batch(sess, train_batch_data, label_batch_data)
             print("step = ", step, " loss = ", loss, " accuracy = ", accuracy)
             step += 1
 
