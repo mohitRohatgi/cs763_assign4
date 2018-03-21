@@ -16,16 +16,18 @@ class Model:
         self.criterion = Criterion()
         self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.seq_length))
         self.output_placeholder = tf.placeholder(tf.int32, shape=(None, ))
+        self.dropout_placeholder = tf.placeholder(tf.float32, shape=())
         self.optimizer = tf.train.AdamOptimizer(self.config.lr)
         self.models = []
         with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
             for i in range(n_layers):
-                self.models.append(Rnn(d, h, i))
+                self.models.append(Rnn(d, h, self.dropout_placeholder, i))
 
             with tf.variable_scope("embeddings", reuse=tf.AUTO_REUSE):
                 embedding = tf.get_variable("embedding", shape=(v, d),
                                             initializer=tf.random_uniform_initializer(-1, 1), trainable=True)
                 self.inputs = tf.nn.embedding_lookup(embedding, self.input_placeholder)
+                self.inputs = tf.nn.dropout(self.inputs, self.dropout_placeholder)
 
             with tf.variable_scope("projection", reuse=tf.AUTO_REUSE):
                 self.U = tf.get_variable(name="U", shape=[h, self.config.num_classes],
@@ -56,9 +58,14 @@ class Model:
         return grad_outputs[-1][0]
 
     def run_batch(self, sess: tf.Session, train_data, label_data):
+        if self.isTrain:
+            drop_out = 1.0
+        else:
+            drop_out = 1.0
         feed_dict = {
             self.input_placeholder: train_data,
-            self.output_placeholder: label_data
+            self.output_placeholder: label_data,
+            self.dropout_placeholder: drop_out
         }
 
         if self.isTrain:

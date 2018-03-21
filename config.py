@@ -1,5 +1,5 @@
 class Config:
-    lr = 1e-6
+    lr = 1e-4
     n_epoch = 200
     seq_length = 2948
     batch_size = 32
@@ -7,7 +7,7 @@ class Config:
     n_layers = 1
     hidden_dim = 64
     num_classes = 1
-    truncated_delta = 7
+    truncated_delta = 3
     vocab_size = 150
     embed_size = 300
-    num_steps = 200
+    num_steps = 10

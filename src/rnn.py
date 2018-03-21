@@ -7,7 +7,7 @@ import numpy as np
 # TODO: implement truncated BPTT.
 # adding index for identifying the rnn layer.
 class Rnn:
-    def __init__(self, input_dimension, hidden_dimension, index=0):
+    def __init__(self, input_dimension, hidden_dimension, dropout_tensor, index=0):
         self.index = index
         with tf.variable_scope("rnn_" + str(index)):
             self.config = Config()
@@ -23,6 +23,7 @@ class Rnn:
                                          initializer=tf.zeros_initializer(), trainable=False)
             self.gradB = tf.get_variable(name="gradB", shape=[hidden_dimension, 1],
                                          initializer=tf.zeros_initializer(), trainable=False)
+            self.dropout_placeholder = dropout_tensor
             self.gradWs = []
             self.gradBs = []
             self.outputs = []
@@ -39,9 +40,10 @@ class Rnn:
             B = tf.identity(self.B)
             input_concat = tf.concat([input_vec, self.outputs[-1]], axis=1)
             state = tf.sigmoid(tf.matmul(input_concat, W) + B, name="hidden_states")
-            self.outputs.append(state)
+            self.outputs.append(tf.nn.dropout(state, self.dropout_placeholder))
         tf.add_to_collection("W_" + str(self.index), W)
         tf.add_to_collection("B_" + str(self.index), B)
+
         return state
 
     # input vec would determine the window for gradient calculation.
