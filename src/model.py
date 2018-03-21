@@ -37,20 +37,18 @@ class Model:
 
     # adding window for truncated BPTT.
     def backward(self, input_vec, grad_output):
-        grad_outputs = []
+        grad_outputs = np.empty(len(self.models), dtype=object)
         for i in range(len(self.models)):
             if i > 0:
-                previous_layer_states = self.models[i-1].get_output(self.config.truncated_delta)
+                previous_layer_states = self.models[i-1].get_output()
             else:
                 previous_layer_states = input_vec
-            grad_outputs.append(self.models[i].backward(previous_layer_states, grad_output))
+            grad_outputs[i] = self.models[i].backward(previous_layer_states, grad_output)
 
         for rnn in self.models:
-            rnn.clean(self.config.truncated_delta)
+            rnn.extracted += 1
 
-        grad_output = grad_outputs[-1]
-        del grad_outputs
-        return grad_output
+        return grad_outputs[-1][0]
 
     # add model in this method.
     # assumption is first layer is placed at index 0.
@@ -62,12 +60,13 @@ class Model:
             input_vecs.append(self.forward(input_vec))
         scores = self.score()
         grad_output = self.criterion.backward(scores, self.output_placeholder)
+        grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
         self.loss = self.criterion.forward(scores, self.output_placeholder)
         self.optimizer.minimize(loss=self.loss, var_list=[self.U, self.B])
         index = -1
         self.grad_updates = []
         # TODO: change to seq_length
-        for _ in range(int(np.ceil(10 / float(self.config.truncated_delta)))):
+        for _ in range(int(np.ceil(self.config.dummy / float(self.config.truncated_delta)))):
             index -= self.config.truncated_delta
             if index < -len(input_vecs):
                 index = 0
@@ -81,7 +80,6 @@ class Model:
                                                       tf.float32))
 
     def run_batch(self, sess: tf.Session, train_data, label_data):
-
         feed_dict = {
             self.input_placeholder: train_data,
             self.output_placeholder: label_data
