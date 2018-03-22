@@ -1,5 +1,5 @@
 class Config:
-    lr = 1e-4
+    lr = 1e-6
     n_epoch = 5000
     seq_length = 2948
     batch_size = 32
