@@ -11,4 +11,4 @@ class Config:
     vocab_size = 151
     embed_size = 300
     num_steps = 10
-    evaluate_every = 100
+    evaluate_every = 10

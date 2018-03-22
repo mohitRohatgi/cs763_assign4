@@ -3,8 +3,8 @@ from src.model import Model
 from utils import get_batch_data_iterator
 from config import Config
 import os
+import time
 
-# TODO: make directory model_name and save model and loss(train and valid) data in the folder.
 # TODO: save loss and accuracy history.
 # TODO: save best model data(graph details).
 # TODO: save models.
@@ -16,6 +16,8 @@ def main():
     # train_path = sys.argv[sys.argv.index('-data') + 1]
     # labels_path = sys.argv[sys.argv.index('-target') + 1]
     model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/'
+    if model_name[-1] != '/':
+        model_name += '/'
     train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
     labels_path = '/Users/mohitrohatgi/Downloads/assign4/train_labels.txt'
     config = Config()
@@ -40,7 +42,7 @@ def main():
                 valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_batch_data, valid_batch_label)
                 print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy)
                 model.isTrain = True
-                saver.save(sess, model_name)
+                saver.save(sess, os.path.join(model_name, str(int(time.time())) + '_' + str(step)))
 
     print(model_name, train_path, labels_path)
 
