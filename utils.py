@@ -40,33 +40,31 @@ def pad_sys_calls(sys_calls, seq_length):
     return np.array(sys_calls)
 
 
-def get_batch_label_iterator(n_epoch, label_path, batch_size):
-    labels = load_label_data(label_path)
-    batch_len = int(np.ceil(len(labels) / float(batch_size)))
-    num_batches_per_epoch = int((len(labels) - 1) / batch_size) + 1
-    for _ in range(n_epoch):
-        shuffled_labels = labels[np.random.permutation(np.arange(len(labels)))]
-        for batch_num in range(num_batches_per_epoch):
-            start_index = batch_num * batch_size
-            end_index = min((batch_num + 1) * batch_size, len(labels))
-            batch_data = shuffled_labels[start_index:end_index]
-            yield batch_data
-
-
-def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size):
-    data, vocab = load_data(data_path)
-    data = np.array(pad_sys_calls(data, seq_length))
+def batch_iter(n_epoch, data, batch_size):
     num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
     for _ in range(n_epoch):
         shuffled_data = data[np.random.permutation(np.arange(len(data)))]
         for batch_num in range(num_batches_per_epoch):
             start_index = batch_num * batch_size
             end_index = min((batch_num + 1) * batch_size, len(data))
+            if end_index - start_index < batch_size:
+                start_index = end_index - batch_size
             batch_data = shuffled_data[start_index:end_index]
             yield batch_data
 
 
-def get_data_iterator(n_epoch, data_path, label_path, seq_length, batch_size):
-    sys_calls_batch = get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size)
-    label_batch = get_batch_label_iterator(n_epoch, label_path, batch_size)
-    return sys_calls_batch, label_batch
+def get_batch_data_iterator(n_epoch, data_path, label_path, seq_length, batch_size):
+    data, vocab = load_data(data_path)
+    data = np.array(pad_sys_calls(data, seq_length))
+    labels = load_label_data(label_path)
+    indices = np.random.permutation(np.arange(len(data)))
+    shuffled_data = data[indices]
+    shuffled_label = labels[indices]
+    boundary = int(len(data) * 0.8)
+    train_data, valid_data = shuffled_data[:boundary], shuffled_data[boundary:]
+    train_labels, valid_labels = shuffled_label[:boundary], shuffled_label[boundary:]
+    train_iterator = batch_iter(n_epoch, train_data, batch_size)
+    valid_iterator = batch_iter(n_epoch, valid_data, batch_size)
+    train_label_iter = batch_iter(n_epoch, train_labels, batch_size)
+    valid_label_iter = batch_iter(n_epoch, valid_labels, batch_size)
+    return train_iterator, train_label_iter, valid_iterator, valid_label_iter

@@ -8,6 +8,7 @@ class Config:
     hidden_dim = 64
     num_classes = 1
     truncated_delta = 3
-    vocab_size = 150
+    vocab_size = 151
     embed_size = 300
     num_steps = 10
+    evaluate_every = 100
