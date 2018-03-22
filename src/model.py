@@ -82,8 +82,9 @@ class Model:
             self._add_embeddings(v, d)
             self._add_projection(h)
 
-            for i in range(n_layers):
-                self.models.append(Rnn(d, h, self.dropout_placeholder, i))
+            self.models.append(Rnn(d, h, self.dropout_placeholder, 0))
+            for i in range(1, n_layers):
+                self.models.append(Rnn(h, h, self.dropout_placeholder, i))
 
             input_vecs = []
             for i in range(self.config.num_steps):

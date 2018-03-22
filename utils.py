@@ -4,7 +4,6 @@ import pickle as pickle
 vocab_path = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/vocab.pkl'
 
 
-# TODO: handle the case where vocabulary unk.
 # 0 signifies no sys call (padding), <UNK> signifies unknown sys call.
 def load_data(train_path, mode='train', saved=False):
     data_file = open(train_path, 'r')

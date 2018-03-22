@@ -51,9 +51,8 @@ def main():
                 print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy)
                 model.isTrain = True
                 saver.save(sess, os.path.join(logger_path + '_' + str(step)))
-                logger.save(logger_path)
 
-    # logger.save(logger_path)
+    logger.save(logger_path)
     print(model_name, train_path, labels_path)
 
 

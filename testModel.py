@@ -4,18 +4,23 @@ import tensorflow as tf
 from config import Config
 from history_logger import HistoryLogger
 from utils import get_batch_data_iterator
+import os
 
-# TODO: ix the argument.
+# TODO: fix the argument.
 # TODO: find the best model.
 # TODO: copy best model to best model.
 # TODO: cross check submission.
 
 
+def find_latest(model_name):
+    dirs = [int(o) for o in os.listdir(model_name) if os.path.isdir(os.path.join(model_name, o))]
+    latest_dir = max(dirs)
+    return os.path.join(model_name, str(latest_dir), str(latest_dir))
+
+
 def test():
-    # model_name = sys.argv[sys.argv.index('-modelName') + 1]
-    # test_path = sys.argv[sys.argv.index('-data') + 1]
-    # print(model_name, test_path)
-    model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/1521725203/1521725203'
+    model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/'
+    model_name = find_latest(model_name)
     test_path = '/Users/mohitrohatgi/Downloads/assign4/test_data.txt'
     logger = HistoryLogger.load(model_name)
     best_model = logger.best_model
