@@ -6,3 +6,4 @@
 *.index
 *checkpoint
 *.data**
+**.pkl

@@ -3,7 +3,8 @@ import sys
 # TODO: load best model data.
 # TODO: load best model.
 # TODO: output the test data predicted labels.
-# TODO: get the best accuracy.
+# TODO: find the best model.
+# TODO: copy best model to best model.
 
 
 def test():

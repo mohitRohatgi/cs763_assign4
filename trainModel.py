@@ -1,13 +1,13 @@
 import tensorflow as tf
+
+from history_logger import HistoryLogger
 from src.model import Model
 from utils import get_batch_data_iterator
 from config import Config
 import os
 import time
 
-# TODO: save loss and accuracy history.
 # TODO: save best model data(graph details).
-# TODO: save models.
 # TODO: fit the data.
 
 
@@ -16,6 +16,8 @@ def main():
     # train_path = sys.argv[sys.argv.index('-data') + 1]
     # labels_path = sys.argv[sys.argv.index('-target') + 1]
     model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/'
+    model_no = int(time.time())
+    model_name = os.path.join(model_name, str(model_no))
     if model_name[-1] != '/':
         model_name += '/'
     train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
@@ -32,6 +34,8 @@ def main():
         step = 0
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.trainable_variables())
+        logger_path = os.path.join(model_name, str(model_no))
+        logger = HistoryLogger()
         for train_batch_data, train_label_batch, valid_batch_data, valid_batch_label in zip(train_data, train_label,
                                                                                             valid_data, valid_label):
             train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
@@ -40,10 +44,13 @@ def main():
             if step % config.evaluate_every == 0:
                 model.isTrain = False
                 valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_batch_data, valid_batch_label)
+                logger.add(train_loss, train_accuracy, valid_loss, valid_accuracy, step)
                 print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy)
                 model.isTrain = True
-                saver.save(sess, os.path.join(model_name, str(int(time.time())) + '_' + str(step)))
+                saver.save(sess, os.path.join(logger_path + '_' + str(step)))
+                logger.save(logger_path)
 
+    # logger.save(logger_path)
     print(model_name, train_path, labels_path)
 
 
