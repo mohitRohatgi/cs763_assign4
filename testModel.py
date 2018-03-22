@@ -1,34 +1,40 @@
-import os, csv, sys
+import csv
+import os
+
 import numpy as np
 import tensorflow as tf
+
+from history_logger import HistoryLogger
+
 
 # TODO: load best model data.
 # TODO: load best model.
 # TODO: output the test data predicted labels.
 # TODO: find the best model.
 # TODO: copy best model to best model.
-from history_logger import HistoryLogger
 
 
 def test():
-    logger_path = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/1521716205/1521716205'
+    logger_path = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/1521720220/1521720220'
     logger = HistoryLogger.load(logger_path)
+    best_model = logger_path + '_' + str(10)
     print(logger.best_model)
-    sess = tf.Session()
-    with tf.get_default_graph() as graph:
+    graph = tf.Graph()
+    with graph.as_default():
+        sess = tf.Session(graph=graph)
         with sess.as_default():
             # Load the saved meta graph and restore variables
-            saver = tf.train.import_meta_graph("{}.meta".format(logger.best_model))
+            saver = tf.train.import_meta_graph("{}.meta".format(best_model))
             saver.restore(sess, logger.best_model)
 
             # Get the placeholders from the graph by name
-            input_x = graph.get_operation_by_name("input_x").outputs[0]
+            input_x = graph.get_operation_by_name("model/input").outputs[0]
 
             # input_y = graph.get_operation_by_name("input_y").outputs[0]
-            dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
+            dropout_keep_prob = graph.get_operation_by_name("model/dropout").outputs[0]
 
             # Tensors we want to evaluate
-            predictions = graph.get_operation_by_name("output/predictions").outputs[0]
+            predictions = graph.get_operation_by_name("model/prediction").outputs[0]
 
             # Generate batches for one epoch
             batches = data_helpers.batch_iter(list(x_test), FLAGS.batch_size, 1, shuffle=False)
