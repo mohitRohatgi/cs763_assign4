@@ -7,8 +7,8 @@ from config import Config
 import os
 import time
 
-# TODO: save best model data(graph details).
 # TODO: fit the data.
+# TODO: remove model no. from folder path
 
 
 def main():
@@ -16,12 +16,13 @@ def main():
     # train_path = sys.argv[sys.argv.index('-data') + 1]
     # labels_path = sys.argv[sys.argv.index('-target') + 1]
     model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/'
+    train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
+    labels_path = '/Users/mohitrohatgi/Downloads/assign4/train_labels.txt'
+
     model_no = int(time.time())
     model_name = os.path.join(model_name, str(model_no))
     if model_name[-1] != '/':
         model_name += '/'
-    train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
-    labels_path = '/Users/mohitrohatgi/Downloads/assign4/train_labels.txt'
     config = Config()
     train_data, train_label, valid_data, valid_label = get_batch_data_iterator(config.n_epoch, train_path, labels_path,
                                                                                config.seq_length, config.batch_size)
