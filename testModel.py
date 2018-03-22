@@ -12,11 +12,13 @@ from utils import get_batch_data_iterator
 
 
 def test():
-    logger_path = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/1521725203/1521725203'
-    model_name = '/Users/mohitrohatgi/Downloads/assign4/test_data.txt'
-    logger = HistoryLogger.load(logger_path)
-    best_model = logger_path + '_' + str(10)
-    print(logger.best_model)
+    # model_name = sys.argv[sys.argv.index('-modelName') + 1]
+    # test_path = sys.argv[sys.argv.index('-data') + 1]
+    # print(model_name, test_path)
+    model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/1521725203/1521725203'
+    test_path = '/Users/mohitrohatgi/Downloads/assign4/test_data.txt'
+    logger = HistoryLogger.load(model_name)
+    best_model = logger.best_model
     graph = tf.Graph()
     config = Config()
     with graph.as_default():
@@ -36,9 +38,8 @@ def test():
             predictions = graph.get_operation_by_name("model/prediction").outputs[0]
 
             # Generate batches for one epoch
-            batches, data_len = get_batch_data_iterator(1, data_path=model_name, label_path=None,
-                                                        seq_length=config.seq_length, batch_size=config.batch_size,
-                                                        mode='test')
+            batches, data_len = get_batch_data_iterator(1, data_path=test_path, label_path=None, mode='test',
+                                                        seq_length=config.seq_length, batch_size=config.batch_size)
 
             # Collect the predictions here
             all_predictions = []
@@ -63,9 +64,6 @@ def test():
         f.write("id,label\n")
         for line_id, prediction in enumerate(predictions):
             f.write(str(line_id) + "," + str(prediction) + "\n")
-    # model_name = sys.argv[sys.argv.index('-modelName') + 1]
-    # test_path = sys.argv[sys.argv.index('-data') + 1]
-    # print(model_name, test_path)
 
 
 if __name__ == '__main__':

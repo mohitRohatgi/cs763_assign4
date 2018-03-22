@@ -27,7 +27,7 @@ def main():
     config = Config()
     train_data, train_label, valid_data, valid_label = get_batch_data_iterator(
         n_epoch=config.n_epoch, data_path=train_path, label_path=labels_path, seq_length=config.seq_length,
-        batch_size=config.batch_size, mode='train', saved=False)
+        batch_size=config.batch_size, mode='train', saved=True)
 
     model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.embed_size)
     if not os.path.exists(model_name):
