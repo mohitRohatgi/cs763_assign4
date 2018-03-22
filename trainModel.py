@@ -15,6 +15,7 @@ def main():
     # model_name = sys.argv[sys.argv.index('-modelName') + 1]
     # train_path = sys.argv[sys.argv.index('-data') + 1]
     # labels_path = sys.argv[sys.argv.index('-target') + 1]
+
     model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/'
     train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
     labels_path = '/Users/mohitrohatgi/Downloads/assign4/train_labels.txt'
@@ -24,8 +25,9 @@ def main():
     if model_name[-1] != '/':
         model_name += '/'
     config = Config()
-    train_data, train_label, valid_data, valid_label = get_batch_data_iterator(config.n_epoch, train_path, labels_path,
-                                                                               config.seq_length, config.batch_size)
+    train_data, train_label, valid_data, valid_label = get_batch_data_iterator(
+        n_epoch=config.n_epoch, data_path=train_path, label_path=labels_path, seq_length=config.seq_length,
+        batch_size=config.batch_size, mode='train', saved=False)
 
     model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.embed_size)
     if not os.path.exists(model_name):

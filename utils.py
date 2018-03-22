@@ -1,23 +1,42 @@
 import numpy as np
+import pickle as pickle
+
+vocab_path = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/vocab.pkl'
 
 
 # TODO: handle the case where vocabulary unk.
 # 0 signifies no sys call (padding), <UNK> signifies unknown sys call.
-def load_data(train_path):
+def load_data(train_path, mode='train', saved=False):
     data_file = open(train_path, 'r')
-    sys_calls = []
-    vocab = {'0': 0, '<UNK>': 1}
+
     i = 2
+    if mode != 'train' or saved:
+        with open(vocab_path, 'rb') as vocab_file:
+            vocab = pickle.load(vocab_file)
+    else:
+        vocab = {'0': 0, '<UNK>': 1}
+
+    sys_calls = []
     for line in data_file.readlines():
         strip_line = line.strip().split(" ")
         for j, call in enumerate(strip_line):
             if call not in vocab:
-                vocab[call] = i
-                i += 1
-            strip_line[j] = int(vocab[call])
+                if mode == 'train' and not saved:
+                    vocab[call] = i
+                    i += 1
+                    strip_line[j] = int(vocab[call])
+                else:
+                    strip_line[j] = int(vocab['<UNK>'])
+            else:
+                strip_line[j] = int(vocab[call])
         sys_calls.append(strip_line)
+
+    if mode == 'train':
+        with open(vocab_path, 'wb') as vocab_file:
+            pickle.dump(vocab, vocab_file, pickle.HIGHEST_PROTOCOL)
+
     data_file.close()
-    return sys_calls, vocab
+    return sys_calls
 
 
 def load_label_data(labels_path):
@@ -53,16 +72,20 @@ def batch_iter(n_epoch, data, batch_size):
             yield batch_data
 
 
-def get_batch_data_iterator(n_epoch, data_path, label_path, seq_length, batch_size):
-    data, vocab = load_data(data_path)
+def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_path=None, mode='train', saved=False):
+    data = load_data(train_path=data_path, mode=mode, saved=saved)
     data = np.array(pad_sys_calls(data, seq_length))
-    labels = load_label_data(label_path)
+
+    if mode != 'train':
+        return batch_iter(n_epoch, data, batch_size), len(data)
+
     indices = np.random.permutation(np.arange(len(data)))
     shuffled_data = data[indices]
-    shuffled_label = labels[indices]
     boundary = int(len(data) * 0.8)
-    train_data, valid_data = shuffled_data[:boundary], shuffled_data[boundary:]
+    labels = load_label_data(label_path)
+    shuffled_label = labels[indices]
     train_labels, valid_labels = shuffled_label[:boundary], shuffled_label[boundary:]
+    train_data, valid_data = shuffled_data[:boundary], shuffled_data[boundary:]
     train_iterator = batch_iter(n_epoch, train_data, batch_size)
     valid_iterator = batch_iter(n_epoch, valid_data, batch_size)
     train_label_iter = batch_iter(n_epoch, train_labels, batch_size)
