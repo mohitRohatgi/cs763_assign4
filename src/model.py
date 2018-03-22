@@ -70,7 +70,7 @@ class Model:
         return tf.sigmoid(projection_output, name='score')
 
     def predict(self, scores):
-        return tf.cast(tf.round(scores), tf.int32, name='prediction')
+        return tf.cast(tf.round(tf.nn.sigmoid(scores)), tf.int32, name='prediction')
 
     # add model in this method.
     # assumption is first layer is placed at index 0.
@@ -92,7 +92,7 @@ class Model:
 
             scores = self.score()
             self.prediction_tensor = self.predict(scores)
-            grad_output = self.criterion.backward(self.prediction_tensor, self.output_placeholder)
+            grad_output = self.criterion.backward(scores, self.output_placeholder)
             grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
             self.loss = self.criterion.forward(scores, self.output_placeholder)
             self.optimizer.minimize(loss=self.loss, var_list=[self.U, self.B])
