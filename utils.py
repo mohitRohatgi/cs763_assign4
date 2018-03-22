@@ -1,7 +1,8 @@
 import numpy as np
 import pickle as pickle
+import os
 
-vocab_path = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/vocab.pkl'
+vocab_path = os.path.join(os.getcwd(), 'vocab.pkl')
 
 
 # 0 signifies no sys call (padding), <UNK> signifies unknown sys call.

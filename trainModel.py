@@ -4,11 +4,9 @@ from history_logger import HistoryLogger
 from src.model import Model
 from utils import get_batch_data_iterator
 from config import Config
+
 import os
 import time
-
-# TODO: fit the data.
-# TODO: remove model no. from folder path
 
 
 def main():

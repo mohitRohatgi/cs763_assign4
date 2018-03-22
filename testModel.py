@@ -6,10 +6,7 @@ from history_logger import HistoryLogger
 from utils import get_batch_data_iterator
 import os
 
-# TODO: fix the argument.
-# TODO: find the best model.
 # TODO: copy best model to best model.
-# TODO: cross check submission.
 
 
 def find_latest(model_name):

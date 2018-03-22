@@ -69,7 +69,6 @@ class Model:
         projection_output = tf.matmul(self.models[-1].outputs[-1], self.U) + self.B
         return tf.sigmoid(projection_output, name='score')
 
-    # TODO: find roc curve and implement thresholds for prediction.
     def predict(self, scores):
         return tf.cast(tf.round(scores), tf.int32, name='prediction')
 
