@@ -91,7 +91,8 @@ class Model:
                 input_vecs.append(self.forward(input_vec))
 
             scores = self.score()
-            grad_output = self.criterion.backward(scores, self.output_placeholder)
+            self.prediction_tensor = self.predict(scores)
+            grad_output = self.criterion.backward(self.prediction_tensor, self.output_placeholder)
             grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
             self.loss = self.criterion.forward(scores, self.output_placeholder)
             self.optimizer.minimize(loss=self.loss, var_list=[self.U, self.B])
@@ -107,7 +108,6 @@ class Model:
             for model in self.models:
                 self.grad_updates.append(model.apply_gradients())
 
-            self.prediction_tensor = self.predict(scores)
             self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
                                                           tf.float32), name='accuracy')
 
