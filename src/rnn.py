@@ -11,13 +11,14 @@ class Rnn:
         with tf.variable_scope("rnn_" + str(index)):
             self.config = Config()
             self.graph = tf.get_default_graph()
-            self.initial_state = tf.get_variable(shape=[self.config.batch_size, hidden_dimension], name="initial_state_" + str(index),
-                                                 initializer=tf.zeros_initializer(), validate_shape=False)
+            self.initial_state = tf.get_variable(shape=[self.config.batch_size, hidden_dimension], trainable=True,
+                                                 initializer=tf.zeros_initializer(), validate_shape=False,
+                                                 name="initial_state_" + str(index))
             self.initial_state_grad = None
             self.W = tf.get_variable(name="W_" + str(index), shape=[input_dimension + hidden_dimension, hidden_dimension],
-                                     initializer=tf.contrib.layers.xavier_initializer())
+                                     initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
             self.B = tf.get_variable(name="B_" + str(index), shape=[hidden_dimension],
-                                     initializer=tf.contrib.layers.xavier_initializer())
+                                     initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
             self.gradW = tf.get_variable(name="gradW", shape=[input_dimension + hidden_dimension, hidden_dimension],
                                          initializer=tf.zeros_initializer(), trainable=False)
             self.gradB = tf.get_variable(name="gradB", shape=[hidden_dimension, 1],
@@ -38,7 +39,7 @@ class Rnn:
             W = tf.identity(self.W)
             B = tf.identity(self.B)
             input_concat = tf.concat([input_vec, self.outputs[-1]], axis=1)
-            state = tf.sigmoid(tf.matmul(input_concat, W) + B, name="hidden_states")
+            state = tf.nn.relu(tf.matmul(input_concat, W) + B, name="hidden_states")
             self.outputs.append(tf.nn.dropout(state, self.dropout_placeholder))
         tf.add_to_collection("W_" + str(self.index), W)
         tf.add_to_collection("B_" + str(self.index), B)

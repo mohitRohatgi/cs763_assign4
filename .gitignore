@@ -2,3 +2,7 @@
 *.pyc
 *.xml
 *.DS_Store
+*.meta
+*.index
+*checkpoint
+*.data**

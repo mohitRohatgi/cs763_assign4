@@ -31,9 +31,9 @@ class Model:
 
             with tf.variable_scope("projection", reuse=tf.AUTO_REUSE):
                 self.U = tf.get_variable(name="U", shape=[h, self.config.num_classes],
-                                         initializer=tf.contrib.layers.xavier_initializer())
+                                         initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
                 self.B = tf.get_variable(name="B", shape=[self.config.num_classes, ],
-                                         initializer=tf.contrib.layers.xavier_initializer())
+                                         initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
         self._construct_model()
 
     # One step forward, responsibility is take care of all the layers
