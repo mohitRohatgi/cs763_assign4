@@ -16,6 +16,7 @@ def main():
     # train_path = sys.argv[sys.argv.index('-data') + 1]
     # labels_path = sys.argv[sys.argv.index('-target') + 1]
 
+    start = time.time()
     model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/'
     train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
     labels_path = '/Users/mohitrohatgi/Downloads/assign4/train_labels.txt'
@@ -36,7 +37,7 @@ def main():
     with tf.Session().as_default() as sess:
         step = 0
         sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver(tf.trainable_variables())
+        saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=10000)
         logger_path = os.path.join(model_name, str(model_no))
         logger = HistoryLogger()
         for train_batch_data, train_label_batch, valid_batch_data, valid_batch_label in zip(train_data, train_label,
@@ -53,7 +54,9 @@ def main():
                 saver.save(sess, os.path.join(logger_path + '_' + str(step)))
 
     logger.save(logger_path)
-    print(model_name, train_path, labels_path)
+    end = time.time() - start
+
+    print(model_name, train_path, labels_path, " time = ", end)
 
 
 if __name__ == '__main__':
