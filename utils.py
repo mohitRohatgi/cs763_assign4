@@ -1,6 +1,8 @@
 import numpy as np
 import pickle as pickle
 import os
+import operator
+import statistics
 
 vocab_path = os.path.join(os.getcwd(), 'vocab.pkl')
 
@@ -72,8 +74,33 @@ def batch_iter(n_epoch, data, batch_size):
             yield batch_data
 
 
+def get_freq(data, bin_size=50):
+    freqs = {}
+    for sys_call in data:
+        freq = int(np.ceil(len(sys_call) / float(bin_size)))
+        if freq not in freqs:
+            freqs[freq] = 0
+        freqs[freq] += 1
+    median = int(statistics.median(freqs.values()))
+    for k, v in freqs.items():
+        if v == median:
+            return k
+
+
+def preprocess(data, median_freq):
+    pre_processed_data = []
+    for sys_call in data:
+        start = 0
+        while start < len(sys_call) - median_freq:
+            pre_processed_data.append(sys_call[start: min(start + median_freq, len(sys_call))])
+            start += median_freq
+    return pre_processed_data
+
+
 def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_path=None, mode='train', saved=False):
     data = load_data(train_path=data_path, mode=mode, saved=saved)
+    median_freq = get_freq(data)
+    # data = preprocess(data, int(median_freq))
     data = np.array(pad_sys_calls(data, seq_length))
 
     if mode != 'train':
