@@ -4,7 +4,7 @@ class Config:
     seq_length = 2948
     batch_size = 32
     output_size = 1
-    n_layers = 2
+    n_layers = 3
     hidden_dim = 64
     num_classes = 1
     truncated_delta = 7
