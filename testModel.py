@@ -15,7 +15,7 @@ def find_latest(model_name):
 
 
 def test():
-    model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/'
+    model_name = os.getcwd() + 'model_name/'
     model_name = find_latest(model_name)
     test_path = '/Users/mohitrohatgi/Downloads/assign4/test_data.txt'
     logger = HistoryLogger.load(model_name)

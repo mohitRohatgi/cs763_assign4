@@ -15,7 +15,7 @@ def main():
     # labels_path = sys.argv[sys.argv.index('-target') + 1]
 
     start = time.time()
-    model_name = '/Users/mohitrohatgi/PycharmProjects/cs763_assign4/model_name/'
+    model_name = os.path.join(os.getcwd(), 'model_name/')
     train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
     labels_path = '/Users/mohitrohatgi/Downloads/assign4/train_labels.txt'
 
