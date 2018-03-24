@@ -1,12 +1,10 @@
-"""
-Truncated BPTT should be introduced in this class.
-Develop a structure for generic interaction of different RNN layers.
-"""
 import tensorflow as tf
+import numpy as np
+
 from config import Config
 from src.criterion import Criterion
+from src.optimizers import AdamOptimizer
 from src.rnn import Rnn
-import numpy as np
 
 
 class Model:
@@ -16,23 +14,32 @@ class Model:
         self.criterion = Criterion()
         self.optimizer = tf.train.AdamOptimizer(self.config.lr)
         self.models = []
+        self.embedding_grads = []
+        self.optimizer = None
+        self.graph = tf.get_default_graph()
         self._construct_model(n_layers, h, v, d)
 
-    # One step forward, responsibility is take care of all the layers
     def forward(self, input_vec):
         for rnn in self.models:
             input_vec = rnn.forward(input_vec)
         return input_vec
 
-    # adding window for truncated BPTT.
     def backward(self, input_vec, grad_output):
         grad_outputs = np.empty(len(self.models), dtype=object)
+
+        stop = self.config.num_steps - self.models[0].extracted * self.config.truncated_delta
+        start = stop - self.config.truncated_delta
+        embeds = tf.get_collection("embeddings")
+        ys = self.models[-1].get_output()
+        self.embedding_grads += tf.gradients(ys=ys, xs=embeds[start:stop], grad_ys=grad_output)
+
         for i in range(len(self.models)):
             if i > 0:
                 previous_layer_states = self.models[i-1].get_output()
             else:
                 previous_layer_states = input_vec
-            grad_outputs[i] = self.models[i].backward(previous_layer_states, grad_output)
+            grad = tf.gradients(ys=self.models[-1].get_output(), xs=self.models[i].get_output(), grad_ys=grad_output)
+            grad_outputs[i] = self.models[i].backward(previous_layer_states, grad)
 
         for rnn in self.models:
             rnn.extracted += 1
@@ -89,12 +96,17 @@ class Model:
                 input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
                 input_vecs.append(self.forward(input_vec))
 
+            for i in range(n_layers):
+                self.models[i].dropout(self.dropout_placeholder)
+
             scores = self.score()
             self.prediction_tensor = self.predict(scores)
             self.loss = self.criterion.forward(scores, self.output_placeholder)
             grad_output = self.criterion.backward(scores, self.output_placeholder)
             grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
-            self.optimizer.minimize(loss=self.loss, var_list=[self.U, self.B])
+
+            optimizer = AdamOptimizer(self.config.lr)
+            optimizer.minimize(loss=self.loss, var_list=[self.U, self.B])
             index = -1
             self.grad_updates = []
 
@@ -105,7 +117,10 @@ class Model:
                 grad_output = self.backward(input_vecs[index], grad_output)
 
             for model in self.models:
-                self.grad_updates.append(model.apply_gradients())
+                self.grad_updates.append(model.apply_gradients(optimizer))
+
+            self.embedding_grad = tf.add_n(self.embedding_grads) / (self.config.truncated_delta * self.config.batch_size)
+            self.grad_updates.append(optimizer.apply_gradients([(self.embedding_grad, self.embedding)]))
 
             self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
                                                           tf.float32), name='accuracy')
@@ -115,16 +130,31 @@ class Model:
         self.output_placeholder = tf.placeholder(tf.int32, shape=(None, ), name="output")
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=(), name="dropout")
 
-    def _add_embeddings(self, v, d):
-        with tf.variable_scope("embeddings", reuse=tf.AUTO_REUSE):
-            embedding = tf.get_variable('embedding', shape=(v, d),
-                                        initializer=tf.random_uniform_initializer(-1, 1), trainable=True)
-            self.inputs = tf.nn.embedding_lookup(embedding, self.input_placeholder)
-            self.inputs = tf.nn.dropout(self.inputs, self.dropout_placeholder)
-
     def _add_projection(self, h):
         with tf.variable_scope('projection', reuse=tf.AUTO_REUSE):
             self.U = tf.get_variable(name='U', shape=[h, self.config.num_classes],
-                                     initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
+                                     initializer=tf.contrib.layers.xavier_initializer())
             self.B = tf.get_variable(name='B', shape=[self.config.num_classes, ],
-                                     initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
+                                     initializer=tf.contrib.layers.xavier_initializer())
+
+    def _add_embeddings(self, v, d):
+        with tf.variable_scope("embeddings", reuse=tf.AUTO_REUSE):
+            self.embedding = tf.get_variable('embedding_matrix', shape=(v, d),
+                                             initializer=tf.random_uniform_initializer(-1, 1))
+            self.inputs = self._lookup_layer(self.one_hot_layer())
+            self.inputs = tf.nn.dropout(self.inputs, self.dropout_placeholder)
+
+    def one_hot_layer(self):
+        one_hots = []
+        for i in range(self.config.batch_size):
+            one_hots.append(tf.expand_dims(tf.one_hot(self.input_placeholder[i], self.config.vocab_size), axis=0))
+        return tf.concat(one_hots, axis=0)
+
+    def _lookup_layer(self, one_hot_input):
+        embeddings = tf.get_variable('embedding_matrix', [self.config.vocab_size, self.config.embed_size])
+        embeddings = tf.identity(embeddings)
+        self.graph.add_to_collection('embeddings', embeddings)
+        inputs = []
+        for i in range(self.config.batch_size):
+            inputs.append(tf.expand_dims(tf.matmul(one_hot_input[i, :, :], embeddings), axis=0))
+        return tf.concat(inputs, axis=0)

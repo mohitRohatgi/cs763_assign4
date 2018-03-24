@@ -15,7 +15,7 @@ def find_latest(model_name):
 
 
 def test():
-    model_name = os.path.join(os.getcwd() + 'model_name')
+    model_name = os.path.join(os.getcwd(), 'model_name')
     model_name = find_latest(model_name)
     test_path = '/Users/mohitrohatgi/Downloads/assign4/test_data.txt'
     logger = HistoryLogger.load(model_name)
@@ -26,7 +26,8 @@ def test():
         sess = tf.Session(graph=graph)
         with sess.as_default():
             # Load the saved meta graph and restore variables
-            saver = tf.train.import_meta_graph("{}.meta".format(best_model))
+            graph_path = best_model[:best_model.rfind('_')] + '_' + config.evaluate_every
+            saver = tf.train.import_meta_graph("{}.meta".format(graph_path))
             saver.restore(sess, logger.best_model)
 
             # Get the placeholders from the graph by name

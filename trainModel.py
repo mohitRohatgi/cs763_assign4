@@ -18,6 +18,7 @@ def main():
     model_name = os.path.join(os.getcwd(), 'model_name')
     train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
     labels_path = '/Users/mohitrohatgi/Downloads/assign4/train_labels.txt'
+    save_meta_graph = True
 
     model_no = int(time.time())
     model_name = os.path.join(model_name, str(model_no))
@@ -27,15 +28,16 @@ def main():
     train_data, train_label, valid_data, valid_label = get_batch_data_iterator(
         n_epoch=config.n_epoch, data_path=train_path, label_path=labels_path, seq_length=config.seq_length,
         batch_size=config.batch_size, mode='train', saved=False)
-
     model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.embed_size)
-    if not os.path.exists(model_name):
-        os.makedirs(model_name)
 
     with tf.Session().as_default() as sess:
         step = 0
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=10000)
+
+        if not os.path.exists(model_name):
+            os.makedirs(model_name)
+
         logger_path = os.path.join(model_name, str(model_no))
         logger = HistoryLogger()
         for train_batch_data, train_label_batch, valid_batch_data, valid_batch_label in zip(train_data, train_label,
@@ -49,9 +51,10 @@ def main():
                 logger.add(train_loss, train_accuracy, valid_loss, valid_accuracy, step)
                 print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy)
                 model.isTrain = True
-                saver.save(sess, os.path.join(logger_path + '_' + str(step)))
+                saver.save(sess, os.path.join(logger_path + '_' + str(step)), write_meta_graph=save_meta_graph)
+                save_meta_graph = False
+                logger.save(logger_path)
 
-    logger.save(logger_path)
     end = time.time() - start
 
     print(model_name, train_path, labels_path, " time = ", end)

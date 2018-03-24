@@ -1,9 +1,22 @@
 import tensorflow as tf
 
 
-class AdamOptimizer:
-    def __init__(self, alpha=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+class AdamOptimizer(tf.train.Optimizer):
+    def _apply_dense(self, grad, var):
+        pass
 
+    def _resource_apply_dense(self, grad, handle):
+        pass
+
+    def _resource_apply_sparse(self, grad, handle, indices):
+        pass
+
+    def _apply_sparse(self, grad, var):
+        pass
+
+    def __init__(self, use_locking=False, name="optimizer", alpha=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+
+        super().__init__(use_locking, name)
         self.alpha = alpha
         self.beta1 = beta1
         self.beta2 = beta2
@@ -17,7 +30,7 @@ class AdamOptimizer:
             self.m[v] = tf.Variable(tf.zeros(tf.shape(v.initial_value)), trainable=False)
             self.u[v] = tf.Variable(tf.zeros(tf.shape(v.initial_value)), trainable=False)
 
-    def apply_gradients(self, gvs):
+    def apply_gradients(self, gvs, **kwargs):
         t = self.t.assign_add(1.0)
         gvs = [(tf.reshape(tf.clip_by_value(grad, -0.99, 0.99), tf.shape(var)), var) for grad, var in gvs]
 
