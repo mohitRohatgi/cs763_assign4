@@ -11,7 +11,7 @@ class Rnn:
             self.config = Config()
             self.graph = tf.get_default_graph()
             self.initial_state = tf.get_variable(shape=[self.config.batch_size, hidden_dimension], trainable=True,
-                                                 initializer=tf.zeros_initializer(), validate_shape=False,
+                                                 initializer=tf.zeros_initializer(), validate_shape=True,
                                                  name="initial_state_" + str(index))
             self.initial_state_grad = None
             self.W = tf.get_variable(name="W_" + str(index), shape=[input_dimension + hidden_dimension, hidden_dimension],
@@ -27,25 +27,19 @@ class Rnn:
             self.outputs.append(self.initial_state)
             self.extracted = 0
 
-    # considering forward to move forward only one time step.
-    # input_vec is a tensor of shape -> None, input_dimension.
-    # padding would be used for variable length inputs.
     def forward(self, input_vec):
         with tf.variable_scope("rnn_" + str(self.index), reuse=tf.AUTO_REUSE):
             W = tf.identity(self.W)
             B = tf.identity(self.B)
             input_concat = tf.concat([input_vec, self.outputs[-1]], axis=1)
-            state = tf.nn.relu(tf.matmul(input_concat, W) + B, name="hidden_states")
+            state = tf.nn.tanh(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
             self.outputs.append(tf.nn.dropout(state, self.dropout_placeholder))
         self.graph.add_to_collection("W_" + str(self.index), W)
         self.graph.add_to_collection("B_" + str(self.index), B)
 
         return state
 
-    # input vec would determine the window for gradient calculation.
-    # grad_output is considered to be the gradient at the last layer.
-    # adding a variable, window, to be used for deciding the window for truncated BPTT.
-    def backward(self, input_vec, grad_output):
+    def backward(self, input_vec, grad_output, ys):
         input_vec_grads = np.empty(2, dtype=object)
         stop = self.config.num_steps - self.extracted * self.config.truncated_delta
         start = stop - self.config.truncated_delta
@@ -53,15 +47,11 @@ class Rnn:
             start = 0
         Ws = tf.get_collection("W_" + str(self.index))
         Bs = tf.get_collection("B_" + str(self.index))
-        xs = [Ws, Bs, input_vec]
-        if start == 0:
-            xs.append(self.initial_state)
-        ys = self.get_output()
-        self.gradWs += tf.gradients(ys=ys, xs=Ws[start: stop], grad_ys=grad_output)
-        self.gradBs += tf.gradients(ys=ys, xs=Bs[start: stop], grad_ys=grad_output)
+        self.gradWs.extend(tf.gradients(ys=ys, xs=Ws[start: stop], grad_ys=grad_output))
+        self.gradBs.extend(tf.gradients(ys=ys, xs=Bs[start: stop], grad_ys=grad_output))
         input_vec_grads[0] = tf.gradients(ys=ys, xs=input_vec, grad_ys=grad_output)
         input_vec_grads[1] = tf.gradients(ys=ys, xs=self.outputs[start], grad_ys=grad_output)
-        if start < self.config.truncated_delta:
+        if start == 0:
             self.initial_state_grad = tf.gradients(ys=ys, xs=self.initial_state, grad_ys=grad_output)
         return input_vec_grads
 
@@ -69,12 +59,14 @@ class Rnn:
         self.outputs = [tf.nn.dropout(output, dropout_tensor) for output in self.outputs]
 
     def get_output(self):
-        if self.extracted * self.config.truncated_delta > len(self.outputs):
+        if self.extracted * self.config.truncated_delta >= len(self.outputs):
             return self.outputs[1]
         return self.outputs[-self.extracted * self.config.truncated_delta - 1]
 
-    def apply_gradients(self, optimizer):
+    def get_gradients(self):
         self.gradW = tf.add_n(self.gradWs) / (self.config.truncated_delta * self.config.batch_size)
         self.gradB = tf.add_n(self.gradBs) / (self.config.truncated_delta * self.config.batch_size)
-        grads_and_vars = [(self.gradW, self.W), (self.gradB, self.B), (self.initial_state_grad, self.initial_state)]
-        return optimizer.apply_gradients(grads_and_vars)
+
+        return [(self.gradW, self.W), (self.gradB, self.B),
+                (tf.reshape(self.initial_state_grad, [self.config.batch_size, self.config.hidden_dim]),
+                 self.initial_state)]

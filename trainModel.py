@@ -43,7 +43,7 @@ def main():
         for train_batch_data, train_label_batch, valid_batch_data, valid_batch_label in zip(train_data, train_label,
                                                                                             valid_data, valid_label):
             train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
-            print("train_step = ", step, " loss = ", train_loss, " accuracy = ", train_accuracy)
+            print("train_step = ", step, " loss = ", train_loss, " accuracy = ", train_accuracy, " dir = ", model_name)
             step += 1
             if step % config.evaluate_every == 0:
                 model.isTrain = False

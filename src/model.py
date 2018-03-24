@@ -3,7 +3,6 @@ import numpy as np
 
 from config import Config
 from src.criterion import Criterion
-from src.optimizers import AdamOptimizer
 from src.rnn import Rnn
 
 
@@ -15,7 +14,6 @@ class Model:
         self.optimizer = tf.train.AdamOptimizer(self.config.lr)
         self.models = []
         self.embedding_grads = []
-        self.optimizer = None
         self.graph = tf.get_default_graph()
         self._construct_model(n_layers, h, v, d)
 
@@ -30,21 +28,20 @@ class Model:
         stop = self.config.num_steps - self.models[0].extracted * self.config.truncated_delta
         start = stop - self.config.truncated_delta
         embeds = tf.get_collection("embeddings")
-        ys = self.models[-1].get_output()
+        ys = self.models[-1].outputs[stop]
         self.embedding_grads += tf.gradients(ys=ys, xs=embeds[start:stop], grad_ys=grad_output)
 
         for i in range(len(self.models)):
             if i > 0:
-                previous_layer_states = self.models[i-1].get_output()
+                previous_layer_states = self.models[i-1].outputs[start]
             else:
                 previous_layer_states = input_vec
-            grad = tf.gradients(ys=self.models[-1].get_output(), xs=self.models[i].get_output(), grad_ys=grad_output)
-            grad_outputs[i] = self.models[i].backward(previous_layer_states, grad)
+            grad_outputs[i] = self.models[i].backward(previous_layer_states, grad_output, ys)
 
         for rnn in self.models:
             rnn.extracted += 1
 
-        return grad_outputs[-1][0]
+        return grad_outputs[-1][1]
 
     def run_batch(self, sess: tf.Session, train_data, label_data=None):
         if self.isTrain:
@@ -67,19 +64,14 @@ class Model:
 
         if self.isTrain:
             loss, accuracy, prediction, _ = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor,
-                                                      self.grad_updates], feed_dict)
+                                                      self.train_op], feed_dict)
         else:
             loss, accuracy, prediction = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor], feed_dict)
         return loss, accuracy, prediction
 
-    def score(self):
-        return tf.add(tf.matmul(self.models[-1].outputs[-1], self.U), self.B, name='score')
-
     def predict(self, scores):
         return tf.cast(tf.round(tf.sigmoid(scores)), tf.int32, name='prediction')
 
-    # add model in this method.
-    # assumption is first layer is placed at index 0.
     def _construct_model(self, n_layers, h, v, d):
         with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
 
@@ -99,31 +91,23 @@ class Model:
             for i in range(n_layers):
                 self.models[i].dropout(self.dropout_placeholder)
 
-            scores = self.score()
+            scores = self._score()
             self.prediction_tensor = self.predict(scores)
             self.loss = self.criterion.forward(scores, self.output_placeholder)
+
             grad_output = self.criterion.backward(scores, self.output_placeholder)
             grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
 
-            optimizer = AdamOptimizer(self.config.lr)
-            optimizer.minimize(loss=self.loss, var_list=[self.U, self.B])
-            index = -1
-            self.grad_updates = []
-
-            for _ in range(int(np.ceil(self.config.num_steps / float(self.config.truncated_delta)))):
-                index -= self.config.truncated_delta
+            for current in range(1, int(np.ceil(self.config.num_steps / float(self.config.truncated_delta))) + 1):
+                index = self.config.num_steps - current * self.config.truncated_delta
                 if index < -len(input_vecs):
                     index = 0
                 grad_output = self.backward(input_vecs[index], grad_output)
 
-            for model in self.models:
-                self.grad_updates.append(model.apply_gradients(optimizer))
-
             self.embedding_grad = tf.add_n(self.embedding_grads) / (self.config.truncated_delta * self.config.batch_size)
-            self.grad_updates.append(optimizer.apply_gradients([(self.embedding_grad, self.embedding)]))
-
             self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
                                                           tf.float32), name='accuracy')
+            self.train_op = self._apply_gradients()
 
     def _add_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.seq_length), name="input")
@@ -140,11 +124,12 @@ class Model:
     def _add_embeddings(self, v, d):
         with tf.variable_scope("embeddings", reuse=tf.AUTO_REUSE):
             self.embedding = tf.get_variable('embedding_matrix', shape=(v, d),
-                                             initializer=tf.random_uniform_initializer(-1, 1))
-            self.inputs = self._lookup_layer(self.one_hot_layer())
+                                             initializer=tf.contrib.layers.xavier_initializer())
+            self.inputs = self._lookup_layer(self._one_hot_layer())
             self.inputs = tf.nn.dropout(self.inputs, self.dropout_placeholder)
+            self.inputs = self._batch_norm(self.inputs)
 
-    def one_hot_layer(self):
+    def _one_hot_layer(self):
         one_hots = []
         for i in range(self.config.batch_size):
             one_hots.append(tf.expand_dims(tf.one_hot(self.input_placeholder[i], self.config.vocab_size), axis=0))
@@ -158,3 +143,22 @@ class Model:
         for i in range(self.config.batch_size):
             inputs.append(tf.expand_dims(tf.matmul(one_hot_input[i, :, :], embeddings), axis=0))
         return tf.concat(inputs, axis=0)
+
+    def _score(self):
+        score = tf.add(tf.matmul(self.models[-1].outputs[-1], self.U), self.B, name='score')
+        return self._batch_norm(score)
+
+    def _batch_norm(self, tensor):
+        mean, var = tf.nn.moments(tensor, axes=[0])
+        return tf.nn.batch_normalization(tensor, mean, var, tf.ones(mean.get_shape().as_list()[1:]),
+                                         tf.zeros(mean.get_shape().as_list()[1:]), 1e-3)
+
+    def _apply_gradients(self):
+        grad_and_vars = []
+        for model in self.models:
+            grad_and_vars += model.get_gradients()
+
+        grad_and_vars.append((self.embedding_grad, self.embedding))
+        grad_and_vars += self.optimizer.compute_gradients(-self.loss, tf.trainable_variables())
+
+        return self.optimizer.apply_gradients(grad_and_vars)

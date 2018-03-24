@@ -1,8 +1,9 @@
 import numpy as np
 import pickle as pickle
 import os
-import operator
 import statistics
+
+from config import Config
 
 vocab_path = os.path.join(os.getcwd(), 'vocab.pkl')
 
@@ -102,15 +103,21 @@ def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_pa
     median_freq = get_freq(data)
     # data = preprocess(data, int(median_freq))
     data = np.array(pad_sys_calls(data, seq_length))
+    labels = load_label_data(label_path)
+
+    batch_size = Config().batch_size
+    data = data[:batch_size]
+    labels = labels[:batch_size]
 
     if mode != 'train':
         return batch_iter(n_epoch, data, batch_size), len(data)
 
     indices = np.random.permutation(np.arange(len(data)))
     shuffled_data = data[indices]
+    # shuffled_data = data
     boundary = int(len(data) * 0.8)
-    labels = load_label_data(label_path)
     shuffled_label = labels[indices]
+    # shuffled_label = labels
     train_labels, valid_labels = shuffled_label[:boundary], shuffled_label[boundary:]
     train_data, valid_data = shuffled_data[:boundary], shuffled_data[boundary:]
     train_iterator = batch_iter(n_epoch, train_data, batch_size)

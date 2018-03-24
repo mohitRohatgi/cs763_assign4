@@ -4,9 +4,8 @@ import os
 import copy
 
 
-# adding mode for finding best model based on accuracy or loss.
 class HistoryLogger:
-    def __init__(self, mode='accuracy'):
+    def __init__(self, mode='loss'):
         self.step = []
         self.valid_loss = []
         self.train_loss = []

@@ -26,7 +26,7 @@ def test():
         sess = tf.Session(graph=graph)
         with sess.as_default():
             # Load the saved meta graph and restore variables
-            graph_path = best_model[:best_model.rfind('_')] + '_' + config.evaluate_every
+            graph_path = best_model[:best_model.rfind('_')] + '_' + str(config.evaluate_every)
             saver = tf.train.import_meta_graph("{}.meta".format(graph_path))
             saver.restore(sess, logger.best_model)
 

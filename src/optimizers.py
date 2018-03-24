@@ -32,7 +32,7 @@ class AdamOptimizer(tf.train.Optimizer):
 
     def apply_gradients(self, gvs, **kwargs):
         t = self.t.assign_add(1.0)
-        gvs = [(tf.reshape(tf.clip_by_value(grad, -0.99, 0.99), tf.shape(var)), var) for grad, var in gvs]
+        gvs = [(tf.reshape(tf.clip_by_value(grad, -1e2, 1e2), tf.shape(var)), var) for grad, var in gvs]
 
         update_ops = []
         for (g, v) in gvs:
