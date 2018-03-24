@@ -105,9 +105,9 @@ def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_pa
     data = np.array(pad_sys_calls(data, seq_length))
     labels = load_label_data(label_path)
 
-    batch_size = Config().batch_size
-    data = data[:batch_size]
-    labels = labels[:batch_size]
+    # batch_size = 100
+    # data = data[:batch_size + 1]
+    # labels = labels[:batch_size + 1]
 
     if mode != 'train':
         return batch_iter(n_epoch, data, batch_size), len(data)

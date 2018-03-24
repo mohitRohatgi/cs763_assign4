@@ -10,5 +10,5 @@ class Config:
     truncated_delta = 5
     vocab_size = 151
     embed_size = 151
-    num_steps = 10
+    num_steps = 1500
     evaluate_every = 100
