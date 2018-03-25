@@ -16,8 +16,8 @@ def main():
 
     start = time.time()
     model_name = os.path.join(os.getcwd(), 'model_name')
-    train_path = '/Users/mohitrohatgi/Downloads/assign4/train_data.txt'
-    labels_path = '/Users/mohitrohatgi/Downloads/assign4/train_labels.txt'
+    train_path = os.path.join(os.getcwd(), 'data/train_data.txt')
+    labels_path = os.path.join(os.getcwd(), 'data/train_labels.txt')
     save_meta_graph = True
 
     model_no = int(time.time())

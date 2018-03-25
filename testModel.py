@@ -17,7 +17,7 @@ def find_latest(model_name):
 def test():
     model_name = os.path.join(os.getcwd(), 'model_name')
     model_name = find_latest(model_name)
-    test_path = '/Users/mohitrohatgi/Downloads/assign4/test_data.txt'
+    test_path = os.path.join(os.getcwd(), 'data/test_data.txt')
     logger = HistoryLogger.load(model_name)
     best_model = logger.best_model
     graph = tf.Graph()

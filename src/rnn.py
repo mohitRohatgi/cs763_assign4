@@ -32,7 +32,7 @@ class Rnn:
             W = tf.identity(self.W)
             B = tf.identity(self.B)
             input_concat = tf.concat([input_vec, self.outputs[-1]], axis=1)
-            state = tf.nn.relu(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
+            state = tf.nn.tanh(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
             self.outputs.append(tf.nn.dropout(state, self.dropout_placeholder))
         self.graph.add_to_collection("W_" + str(self.index), W)
         self.graph.add_to_collection("B_" + str(self.index), B)
