@@ -118,9 +118,9 @@ class Model:
     def _add_projection(self, h):
         with tf.variable_scope('projection', reuse=tf.AUTO_REUSE):
             self.U = tf.get_variable(name='U', shape=[h, self.config.num_classes],
-                                     initializer=tf.contrib.layers.xavier_initializer())
+                                     initializer=tf.random_uniform_initializer())
             self.B = tf.get_variable(name='B', shape=[self.config.num_classes, ],
-                                     initializer=tf.contrib.layers.xavier_initializer())
+                                     initializer=tf.zeros_initializer())
 
     def _add_embeddings(self, v, d):
         with tf.variable_scope("embeddings", reuse=tf.AUTO_REUSE):

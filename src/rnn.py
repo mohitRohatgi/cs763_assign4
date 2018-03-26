@@ -11,13 +11,13 @@ class Rnn:
             self.config = Config()
             self.graph = tf.get_default_graph()
             self.initial_state = tf.get_variable(shape=[self.config.batch_size, hidden_dimension], trainable=True,
-                                                 initializer=tf.zeros_initializer(), validate_shape=True,
+                                                 initializer=tf.random_uniform_initializer(), validate_shape=True,
                                                  name="initial_state_" + str(index))
             self.initial_state_grad = None
             self.W = tf.get_variable(name="W_" + str(index), shape=[input_dimension + hidden_dimension, hidden_dimension],
                                      initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
             self.B = tf.get_variable(name="B_" + str(index), shape=[hidden_dimension],
-                                     initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
+                                     initializer=tf.zeros_initializer(), trainable=True)
             self.gradW = None
             self.gradB = None
             self.dropout_placeholder = dropout_tensor
