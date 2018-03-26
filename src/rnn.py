@@ -32,11 +32,10 @@ class Rnn:
             W = tf.identity(self.W)
             B = tf.identity(self.B)
             input_concat = tf.concat([input_vec, self.outputs[-1]], axis=1)
-            state = tf.nn.tanh(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
+            state = tf.nn.relu(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
             self.outputs.append(tf.nn.dropout(state, self.dropout_placeholder))
         self.graph.add_to_collection("W_" + str(self.index), W)
         self.graph.add_to_collection("B_" + str(self.index), B)
-
         return state
 
     def backward(self, input_vec, grad_output, ys):
@@ -66,6 +65,8 @@ class Rnn:
     def get_gradients(self):
         self.gradW = tf.add_n(self.gradWs) / (self.config.truncated_delta * self.config.batch_size)
         self.gradB = tf.add_n(self.gradBs) / (self.config.truncated_delta * self.config.batch_size)
+        tf.get_default_graph().clear_collection("W_" + str(self.index))
+        tf.get_default_graph().clear_collection("B_" + str(self.index))
 
         return [(self.gradW, self.W), (self.gradB, self.B),
                 (tf.reshape(self.initial_state_grad, [self.config.batch_size, self.config.hidden_dim]),

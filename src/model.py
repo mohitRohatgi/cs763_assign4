@@ -107,6 +107,7 @@ class Model:
             self.embedding_grad = tf.add_n(self.embedding_grads) / (self.config.truncated_delta * self.config.batch_size)
             self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
                                                           tf.float32), name='accuracy')
+            tf.get_default_graph().clear_collection("embeddings")
             self.train_op = self._apply_gradients()
 
     def _add_placeholders(self):
@@ -154,11 +155,8 @@ class Model:
                                          tf.zeros(mean.get_shape().as_list()[1:]), 1e-3)
 
     def _apply_gradients(self):
-        grad_and_vars = []
+        grad_and_vars = self.optimizer.compute_gradients(-self.loss, var_list=[self.U, self.B])
         for model in self.models:
             grad_and_vars += model.get_gradients()
-
         grad_and_vars.append((self.embedding_grad, self.embedding))
-        grad_and_vars += self.optimizer.compute_gradients(-self.loss, tf.trainable_variables())
-
         return self.optimizer.apply_gradients(grad_and_vars)
