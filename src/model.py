@@ -15,6 +15,7 @@ class Model:
         self.models = []
         self.embedding_grads = []
         self.graph = tf.get_default_graph()
+        self.count = 0
         self._construct_model(n_layers, h, v, d)
 
     def forward(self, input_vec):
@@ -76,7 +77,8 @@ class Model:
         with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
 
             self._add_placeholders()
-            self._add_embeddings(v, d)
+            self.inputs = self._one_hot_layer()
+            # self._add_embeddings(v, d)
             self._add_projection(h)
 
             self.models.append(Rnn(d, h, self.dropout_placeholder, 0))
@@ -104,7 +106,7 @@ class Model:
                     index = 0
                 grad_output = self.backward(input_vecs[index], grad_output)
 
-            self.embedding_grad = tf.add_n(self.embedding_grads) / (self.config.truncated_delta * self.config.batch_size)
+            # self.embedding_grad = tf.add_n(self.embedding_grads) / (self.config.truncated_delta * self.config.batch_size)
             self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
                                                           tf.float32), name='accuracy')
             tf.get_default_graph().clear_collection("embeddings")
@@ -126,9 +128,9 @@ class Model:
         with tf.variable_scope("embeddings", reuse=tf.AUTO_REUSE):
             self.embedding = tf.get_variable('embedding_matrix', shape=(v, d),
                                              initializer=tf.contrib.layers.xavier_initializer())
-            self.inputs = self._lookup_layer(self._one_hot_layer())
+            # self.inputs = self._lookup_layer(self._one_hot_layer())
             self.inputs = tf.nn.dropout(self.inputs, self.dropout_placeholder)
-            self.inputs = self._batch_norm(self.inputs)
+            # self.inputs = self._batch_norm(self.inputs)
 
     def _one_hot_layer(self):
         one_hots = []
@@ -146,8 +148,8 @@ class Model:
         return tf.concat(inputs, axis=0)
 
     def _score(self):
-        score = tf.add(tf.matmul(self.models[-1].outputs[-1], self.U), self.B, name='score')
-        return self._batch_norm(score)
+        return tf.add(tf.matmul(self.models[-1].outputs[-1], self.U), self.B, name='score')
+        # return self._batch_norm(score)
 
     def _batch_norm(self, tensor):
         mean, var = tf.nn.moments(tensor, axes=[0])
@@ -158,5 +160,5 @@ class Model:
         grad_and_vars = self.optimizer.compute_gradients(-self.loss, var_list=[self.U, self.B])
         for model in self.models:
             grad_and_vars += model.get_gradients()
-        grad_and_vars.append((self.embedding_grad, self.embedding))
+        # grad_and_vars.append((self.embedding_grad, self.embedding))
         return self.optimizer.apply_gradients(grad_and_vars)
