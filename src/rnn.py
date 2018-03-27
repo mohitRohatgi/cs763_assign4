@@ -74,8 +74,8 @@ class Rnn:
         return self.outputs[-self.extracted * self.config.truncated_delta - 1]
 
     def get_gradients(self):
-        self.gradW = tf.add_n(self.gradWs) / float(len(self.gradWs) * self.config.truncated_delta)
-        self.gradB = tf.add_n(self.gradBs) / float(len(self.gradBs) * self.config.truncated_delta)
+        self.gradW = tf.add_n(self.gradWs) / float(len(self.gradWs))
+        self.gradB = tf.add_n(self.gradBs) / float(len(self.gradBs))
         tf.get_default_graph().clear_collection("W_" + str(self.index))
         tf.get_default_graph().clear_collection("B_" + str(self.index))
 
