@@ -100,25 +100,21 @@ def preprocess(data, median_freq):
 
 def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_path=None, mode='train', saved=False):
     data = load_data(train_path=data_path, mode=mode, saved=saved)
-    median_freq = get_freq(data)
-    # data = preprocess(data, int(median_freq))
     data = np.array(pad_sys_calls(data, seq_length))
-    labels = load_label_data(label_path)
-
-    # batch_size = 100
-    # data = data[:batch_size + 1]
-    # labels = labels[:batch_size + 1]
 
     if mode != 'train':
         return batch_iter(n_epoch, data, batch_size), len(data)
 
     indices = np.random.permutation(np.arange(len(data)))
     shuffled_data = data[indices]
-    # shuffled_data = data
     boundary = int(len(data) * 0.8)
-    shuffled_label = labels[indices]
-    # shuffled_label = labels
-    train_labels, valid_labels = shuffled_label[:boundary], shuffled_label[boundary:]
+    train_labels, valid_labels = None, None
+
+    if label_path is not None:
+        labels = load_label_data(label_path)
+        shuffled_label = labels[indices]
+        train_labels, valid_labels = shuffled_label[:boundary], shuffled_label[boundary:]
+
     train_data, valid_data = shuffled_data[:boundary], shuffled_data[boundary:]
     train_iterator = batch_iter(n_epoch, train_data, batch_size)
     valid_iterator = batch_iter(n_epoch, valid_data, batch_size)
