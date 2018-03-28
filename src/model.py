@@ -16,11 +16,53 @@ class Model:
         self.embedding_grads = []
         self.graph = tf.get_default_graph()
         self.count = 0
-        self._construct_model(n_layers, h, v, d)
+        self.back_count = -1
+        self.embeddings = tf.get_variable("embedding_matrix", shape=[self.config.vocab_size, self.config.embed_size])
+        self.construct_model(n_layers, h, v, d)
+
+    def construct_model(self, n_layers, h, v, d):
+        with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
+
+            self._add_placeholders()
+            # self.inputs = self._one_hot_layer()
+            self.inputs = self._lookup_layer(self._one_hot_layer())
+            self._add_projection(h)
+
+            self.models.append(Rnn(d, h, self.dropout_placeholder, 0))
+            for i in range(1, n_layers):
+                self.models.append(Rnn(h, h, self.dropout_placeholder, i))
+
+            self.input_vecs = []
+            for i in range(self.config.num_steps):
+                input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
+                self.input_vecs.append(self.forward(input_vec))
+
+            for i in range(n_layers):
+                self.models[i].dropout(self.dropout_placeholder)
+
+            scores = self._score()
+            self.prediction_tensor = self.predict(scores)
+            self.loss = self.criterion.forward(scores, self.output_placeholder)
+
+            grad_output = self.criterion.backward(scores, self.output_placeholder)
+            grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
+
+            for current in range(1, int(np.ceil(self.config.num_steps / float(self.config.truncated_delta))) + 1):
+                index = self.config.num_steps - current * self.config.truncated_delta
+                if index < -len(self.input_vecs):
+                    index = 0
+                grad_output = self.backward(self.input_vecs[index], grad_output)
+
+            self.embedding_grad = tf.add_n(self.embedding_grads) / (len(self.embedding_grads))
+            self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
+                                                          tf.float32), name='accuracy')
+            self.graph.clear_collection("embeddings")
+            self.train_op = self._apply_gradients()
 
     def forward(self, input_vec):
         for rnn in self.models:
             input_vec = rnn.forward(input_vec)
+
         return input_vec
 
     def backward(self, input_vec, grad_output):
@@ -30,7 +72,7 @@ class Model:
         start = stop - self.config.truncated_delta
         embeds = tf.get_collection("embeddings")
         ys = self.models[-1].outputs[stop]
-        self.embedding_grads += tf.gradients(ys=ys, xs=embeds[start:stop], grad_ys=grad_output)
+        self.embedding_grads += tf.gradients(ys=ys, xs=embeds[self.back_count], grad_ys=grad_output)
 
         for i in range(len(self.models)):
             if i > 0:
@@ -41,6 +83,8 @@ class Model:
 
         for rnn in self.models:
             rnn.extracted += 1
+
+        self.back_count -= 1
 
         return grad_outputs[-1][1]
 
@@ -70,48 +114,6 @@ class Model:
             loss, accuracy, prediction = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor], feed_dict)
         return loss, accuracy, prediction
 
-    def predict(self, scores):
-        return tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
-
-    def _construct_model(self, n_layers, h, v, d):
-        with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
-
-            self._add_placeholders()
-            self.inputs = self._one_hot_layer()
-            # self._add_embeddings(v, d)
-            self._add_projection(h)
-
-            self.models.append(Rnn(d, h, self.dropout_placeholder, 0))
-            for i in range(1, n_layers):
-                self.models.append(Rnn(h, h, self.dropout_placeholder, i))
-
-            input_vecs = []
-            for i in range(self.config.num_steps):
-                input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
-                input_vecs.append(self.forward(input_vec))
-
-            for i in range(n_layers):
-                self.models[i].dropout(self.dropout_placeholder)
-
-            scores = self._score()
-            self.prediction_tensor = self.predict(scores)
-            self.loss = self.criterion.forward(scores, self.output_placeholder)
-
-            grad_output = self.criterion.backward(scores, self.output_placeholder)
-            grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
-
-            for current in range(1, int(np.ceil(self.config.num_steps / float(self.config.truncated_delta))) + 1):
-                index = self.config.num_steps - current * self.config.truncated_delta
-                if index < -len(input_vecs):
-                    index = 0
-                grad_output = self.backward(input_vecs[index], grad_output)
-
-            # self.embedding_grad = tf.add_n(self.embedding_grads) / (self.config.truncated_delta * self.config.batch_size)
-            self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
-                                                          tf.float32), name='accuracy')
-            tf.get_default_graph().clear_collection("embeddings")
-            self.train_op = self._apply_gradients()
-
     def _add_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.seq_length), name="input")
         self.output_placeholder = tf.placeholder(tf.int32, shape=(None, ), name="output")
@@ -124,14 +126,6 @@ class Model:
             self.B = tf.get_variable(name='B', shape=[self.config.num_classes, ],
                                      initializer=tf.zeros_initializer())
 
-    def _add_embeddings(self, v, d):
-        with tf.variable_scope("embeddings", reuse=tf.AUTO_REUSE):
-            self.embedding = tf.get_variable('embedding_matrix', shape=(v, d),
-                                             initializer=tf.contrib.layers.xavier_initializer())
-            # self.inputs = self._lookup_layer(self._one_hot_layer())
-            self.inputs = tf.nn.dropout(self.inputs, self.dropout_placeholder)
-            # self.inputs = self._batch_norm(self.inputs)
-
     def _one_hot_layer(self):
         one_hots = []
         for i in range(self.config.batch_size):
@@ -139,13 +133,15 @@ class Model:
         return tf.concat(one_hots, axis=0)
 
     def _lookup_layer(self, one_hot_input):
-        embeddings = tf.get_variable('embedding_matrix', [self.config.vocab_size, self.config.embed_size])
-        embeddings = tf.identity(embeddings)
-        self.graph.add_to_collection('embeddings', embeddings)
         inputs = []
-        for i in range(self.config.batch_size):
-            inputs.append(tf.expand_dims(tf.matmul(one_hot_input[i, :, :], embeddings), axis=0))
-        return tf.concat(inputs, axis=0)
+        for i in range(self.config.num_steps):
+            with tf.variable_scope("embeddings", reuse=tf.AUTO_REUSE):
+                if self.count % self.config.truncated_delta == 0:
+                    embeddings = tf.identity(self.embeddings)
+                    self.graph.add_to_collection("embeddings", embeddings)
+
+            inputs.append(tf.expand_dims(tf.matmul(one_hot_input[:, i, :], tf.get_collection("embeddings")[-1]), axis=1))
+        return tf.concat(inputs, axis=1)
 
     def _score(self):
         return tf.add(tf.matmul(self.models[-1].outputs[-1], self.U), self.B, name='score')
@@ -156,9 +152,13 @@ class Model:
         return tf.nn.batch_normalization(tensor, mean, var, tf.ones(mean.get_shape().as_list()[1:]),
                                          tf.zeros(mean.get_shape().as_list()[1:]), 1e-3)
 
+    def predict(self, scores):
+        return tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
+
     def _apply_gradients(self):
         grad_and_vars = self.optimizer.compute_gradients(-self.loss, var_list=[self.U, self.B])
         for model in self.models:
             grad_and_vars += model.get_gradients()
-        # grad_and_vars.append((self.embedding_grad, self.embedding))
+
+        grad_and_vars.append((self.embedding_grad, self.embeddings))
         return self.optimizer.apply_gradients(grad_and_vars)

@@ -39,7 +39,7 @@ def main():
             os.makedirs(model_name)
 
         logger_path = os.path.join(model_name, str(model_no))
-        logger = HistoryLogger()
+        logger = HistoryLogger(config)
         for train_batch_data, train_label_batch, valid_batch_data, valid_batch_label in zip(train_data, train_label,
                                                                                             valid_data, valid_label):
             train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)

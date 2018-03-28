@@ -1,6 +1,5 @@
 import tensorflow as tf
 
-from config import Config
 from history_logger import HistoryLogger
 from utils import get_batch_data_iterator
 import os
@@ -21,7 +20,7 @@ def test():
     logger = HistoryLogger.load(model_name)
     best_model = logger.best_model
     graph = tf.Graph()
-    config = Config()
+    config = logger.config
     with graph.as_default():
         sess = tf.Session(graph=graph)
         with sess.as_default():
