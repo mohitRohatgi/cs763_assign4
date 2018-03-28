@@ -40,13 +40,13 @@ def main():
 
         logger_path = os.path.join(model_name, str(model_no))
         logger = HistoryLogger(config)
-        for train_batch_data, train_label_batch, valid_batch_data, valid_batch_label in zip(train_data, train_label,
-                                                                                            valid_data, valid_label):
+        for train_batch_data, train_label_batch in zip(train_data, train_label):
             train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
             print("train_step = ", step, " loss = ", train_loss, " accuracy = ", train_accuracy, " dir = ", model_name)
             step += 1
             if step % config.evaluate_every == 0:
                 model.isTrain = False
+                valid_batch_data, valid_batch_label = valid_data.__next__(), valid_label.__next__()
                 valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_batch_data, valid_batch_label)
                 logger.add(train_loss, train_accuracy, valid_loss, valid_accuracy, step)
                 print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy)

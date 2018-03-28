@@ -13,7 +13,7 @@ class HistoryLogger:
         self.train_accuracy = []
         self.best_model = None
         self.mode = mode
-        self.config = config
+        self.config = copy.deepcopy(config)
 
     def add(self, train_loss, train_accuracy, valid_loss, valid_accuracy, step):
         self.step.append(step)

@@ -26,6 +26,8 @@ class Model:
             self._add_placeholders()
             # self.inputs = self._one_hot_layer()
             self.inputs = self._lookup_layer(self._one_hot_layer())
+            self.inputs = self._batch_norm(self.inputs, axes=[0])
+
             self._add_projection(h)
 
             self.models.append(Rnn(d, h, self.dropout_placeholder, 0))

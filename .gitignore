@@ -7,5 +7,3 @@
 *checkpoint
 *.data**
 **.pkl
-**.bin
-testPrediction.bin
