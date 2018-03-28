@@ -5,7 +5,7 @@ import copy
 
 
 class HistoryLogger:
-    def __init__(self, config, mode='loss'):
+    def __init__(self, config, mode='accuracy'):
         self.step = []
         self.valid_loss = []
         self.train_loss = []

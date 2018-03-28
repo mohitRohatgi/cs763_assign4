@@ -3,8 +3,6 @@ import pickle as pickle
 import os
 import statistics
 
-from config import Config
-
 vocab_path = os.path.join(os.getcwd(), 'vocab.pkl')
 
 
