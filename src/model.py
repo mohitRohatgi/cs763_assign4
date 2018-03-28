@@ -71,7 +71,7 @@ class Model:
         return loss, accuracy, prediction
 
     def predict(self, scores):
-        return tf.cast(tf.round(tf.sigmoid(scores)), tf.int32, name='prediction')
+        return tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
 
     def _construct_model(self, n_layers, h, v, d):
         with tf.variable_scope("model", reuse=tf.AUTO_REUSE):

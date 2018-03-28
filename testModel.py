@@ -58,7 +58,7 @@ def test():
     for prediction_batch in all_predictions:
         for prediction in prediction_batch:
             if not (index1 < index < index2):
-                predictions.append(prediction[0])
+                predictions.append(prediction)
             index += 1
     del all_predictions
 
