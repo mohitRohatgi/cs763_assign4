@@ -40,7 +40,9 @@ class Model:
             for i in range(n_layers):
                 self.models[i].dropout(self.dropout_placeholder)
 
-            scores = self._score()
+            self.output = self._batch_norm(self.models[-1].outputs[-1], axes=[0])
+            # output = self.models[-1].outputs[-1]
+            scores = self._score(self.output)
             self.prediction_tensor = self.predict(scores)
             self.loss = self.criterion.forward(scores, self.output_placeholder)
 
@@ -143,14 +145,14 @@ class Model:
             inputs.append(tf.expand_dims(tf.matmul(one_hot_input[:, i, :], tf.get_collection("embeddings")[-1]), axis=1))
         return tf.concat(inputs, axis=1)
 
-    def _score(self):
-        return tf.add(tf.matmul(self.models[-1].outputs[-1], self.U), self.B, name='score')
+    def _score(self, output):
+        return tf.add(tf.matmul(output, self.U), self.B, name='score')
         # return self._batch_norm(score)
 
-    def _batch_norm(self, tensor):
-        mean, var = tf.nn.moments(tensor, axes=[0])
-        return tf.nn.batch_normalization(tensor, mean, var, tf.ones(mean.get_shape().as_list()[1:]),
-                                         tf.zeros(mean.get_shape().as_list()[1:]), 1e-3)
+    def _batch_norm(self, tensor, axes):
+        mean, var = tf.nn.moments(tensor, axes)
+        return tf.nn.batch_normalization(tensor, mean, var, tf.zeros(mean.get_shape()),
+                                         tf.ones(mean.get_shape()), 1e-3)
 
     def predict(self, scores):
         return tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
@@ -159,6 +161,11 @@ class Model:
         grad_and_vars = self.optimizer.compute_gradients(-self.loss, var_list=[self.U, self.B])
         for model in self.models:
             grad_and_vars += model.get_gradients()
-
         grad_and_vars.append((self.embedding_grad, self.embeddings))
+
+        grad_and_vars = self._clip_gradients(grad_and_vars)
+
         return self.optimizer.apply_gradients(grad_and_vars)
+
+    def _clip_gradients(self, grad_and_vars):
+        return [(tf.reshape(tf.clip_by_value(grad, -5.0, 5.0), tf.shape(var)), var) for grad, var in grad_and_vars]
