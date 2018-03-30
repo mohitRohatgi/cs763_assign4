@@ -49,7 +49,7 @@ def main():
                 valid_batch_data, valid_batch_label = valid_data.__next__(), valid_label.__next__()
                 valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_batch_data, valid_batch_label)
                 logger.add(train_loss, train_accuracy, valid_loss, valid_accuracy, step)
-                print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy)
+                print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy, " config = ", config)
                 model.isTrain = True
                 saver.save(sess, os.path.join(logger_path + '_' + str(step)), write_meta_graph=save_meta_graph)
                 save_meta_graph = False
