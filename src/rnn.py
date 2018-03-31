@@ -31,6 +31,7 @@ class Rnn:
             self.outputs.append(self.initial_state)
 
     def forward(self, input_vec):
+        print("rnn forward ...")
         with tf.variable_scope("rnn_" + str(self.index), reuse=tf.AUTO_REUSE):
             if self.count % self.config.truncated_delta == 0:
                 W = tf.get_variable("W_" + str(self.index), [self.input_dimension + self.hidden_dimension,
@@ -50,6 +51,7 @@ class Rnn:
         return state
 
     def backward(self, input_vec, grad_output, ys):
+        print('rnn backward ....')
         input_vec_grads = np.empty(2, dtype=object)
         stop = self.config.num_steps - self.extracted * self.config.truncated_delta
         start = stop - self.config.truncated_delta

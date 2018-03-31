@@ -23,6 +23,7 @@ class Model:
     def construct_model(self, n_layers, h, v, d):
         with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
 
+            print('model construct model ...')
             self._add_placeholders()
             # self.inputs = self._one_hot_layer()
             self.inputs = self._lookup_layer(self._one_hot_layer())
@@ -34,6 +35,7 @@ class Model:
             for i in range(1, n_layers):
                 self.models.append(Rnn(h, h, self.dropout_placeholder, i))
 
+            print('model forward starting ....')
             self.input_vecs = []
             for i in range(self.config.num_steps):
                 input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
@@ -51,6 +53,7 @@ class Model:
             grad_output = self.criterion.backward(scores, self.output_placeholder)
             grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
 
+            print('model backward starting ....')
             for current in range(1, int(np.ceil(self.config.num_steps / float(self.config.truncated_delta))) + 1):
                 index = self.config.num_steps - current * self.config.truncated_delta
                 if index < -len(self.input_vecs):
@@ -62,14 +65,17 @@ class Model:
                                                           tf.float32), name='accuracy')
             self.graph.clear_collection("embeddings")
             self.train_op = self._apply_gradients()
+            print('construct model done ...')
 
     def forward(self, input_vec):
+        print('model forward ....')
         for rnn in self.models:
             input_vec = rnn.forward(input_vec)
 
         return input_vec
 
     def backward(self, input_vec, grad_output):
+        print('model backward ...')
         grad_outputs = np.empty(len(self.models), dtype=object)
 
         stop = self.config.num_steps - self.models[0].extracted * self.config.truncated_delta
