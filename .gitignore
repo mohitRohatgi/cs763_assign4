@@ -3,3 +3,4 @@
 *.xml
 *.DS_Store
 *.data**
+**model_name**

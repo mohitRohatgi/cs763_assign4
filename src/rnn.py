@@ -45,7 +45,7 @@ class Rnn:
                 W1 = tf.get_collection("W_" + str(self.index))[-1]
                 B1 = tf.get_collection("B_" + str(self.index))[-1]
             input_concat = tf.concat([input_vec, self.outputs[-1]], axis=1)
-            state = tf.nn.relu(tf.add(tf.matmul(input_concat, W1), B1), name="hidden_states")
+            state = tf.nn.tanh(tf.add(tf.matmul(input_concat, W1), B1), name="hidden_states")
             self.outputs.append(tf.nn.dropout(state, self.dropout_placeholder))
             self.count += 1
         return state

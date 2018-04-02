@@ -83,7 +83,7 @@ def get_freq(data, bin_size=50):
     median = int(statistics.median(freqs.values()))
     for k, v in freqs.items():
         if v == median:
-            return k
+            return k, freqs
 
 
 def preprocess(data, median_freq):
@@ -98,6 +98,7 @@ def preprocess(data, median_freq):
 
 def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_path=None, mode='train', saved=False):
     data = load_data(train_path=data_path, mode=mode, saved=saved)
+    # freq = get_freq(data)
     data = np.array(pad_sys_calls(data, seq_length))
 
     if mode != 'train':

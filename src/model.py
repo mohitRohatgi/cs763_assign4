@@ -17,7 +17,7 @@ class Model:
         self.graph = tf.get_default_graph()
         self.count = 0
         self.back_count = -1
-        self.embeddings = tf.get_variable("embedding_matrix", shape=[self.config.vocab_size, self.config.embed_size])
+        # self.embeddings = tf.get_variable("embedding_matrix", shape=[self.config.vocab_size, self.config.embed_size])
         self.construct_model(n_layers, h, v, d)
 
     def construct_model(self, n_layers, h, v, d):
@@ -25,8 +25,8 @@ class Model:
 
             print('model construct model ...')
             self._add_placeholders()
-            # self.inputs = self._one_hot_layer()
-            self.inputs = self._lookup_layer(self._one_hot_layer())
+            self.inputs = self._one_hot_layer()
+            # self.inputs = self._lookup_layer(self._one_hot_layer())
             # self.inputs = self._batch_norm(self.inputs, axes=[0])
 
             self._add_projection(h)
@@ -60,10 +60,10 @@ class Model:
                     index = 0
                 grad_output = self.backward(self.input_vecs[index], grad_output)
 
-            self.embedding_grad = tf.add_n(self.embedding_grads) / (len(self.embedding_grads))
+            # self.embedding_grad = tf.add_n(self.embedding_grads) / (len(self.embedding_grads))
             self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
                                                           tf.float32), name='accuracy')
-            self.graph.clear_collection("embeddings")
+            # self.graph.clear_collection("embeddings")
             self.train_op = self._apply_gradients()
             print('construct model done ...')
 
@@ -80,9 +80,9 @@ class Model:
 
         stop = self.config.num_steps - self.models[0].extracted * self.config.truncated_delta
         start = stop - self.config.truncated_delta
-        embeds = tf.get_collection("embeddings")
+        # embeds = tf.get_collection("embeddings")
         ys = self.models[-1].outputs[stop]
-        self.embedding_grads += tf.gradients(ys=ys, xs=embeds[self.back_count], grad_ys=grad_output)
+        # self.embedding_grads += tf.gradients(ys=ys, xs=embeds[self.back_count], grad_ys=grad_output)
 
         for i in range(len(self.models)):
             if i > 0:
@@ -169,7 +169,7 @@ class Model:
         grad_and_vars = self.optimizer.compute_gradients(-self.loss, var_list=[self.U, self.B])
         for model in self.models:
             grad_and_vars += model.get_gradients()
-        grad_and_vars.append((self.embedding_grad, self.embeddings))
+        # grad_and_vars.append((self.embedding_grad, self.embeddings))
 
         grad_and_vars = self._clip_gradients(grad_and_vars)
 
