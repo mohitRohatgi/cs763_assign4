@@ -1,17 +1,17 @@
 class Config:
     def __init__(self):
         self.lr = 1e-5
-        self.n_epoch = 5000
+        self.n_epoch = 200
         self.seq_length = 2948
-        self.batch_size = 32
+        self.batch_size = 64
         self.n_layers = 1
-        self.hidden_dim = 256
+        self.hidden_dim = 512
         self.num_classes = 2
         self.truncated_delta = 32
         self.vocab_size = 151
         self.embed_size = 151
-        self.num_steps = 2000
-        self.evaluate_every = 30
+        self.num_steps = 1300
+        self.evaluate_every = 10
 
     def __str__(self):
         return "{ lr:" + str(self.lr) + ", n_epoch = " + str(self.n_epoch) + ", batch_size = " + str(self.batch_size) +\

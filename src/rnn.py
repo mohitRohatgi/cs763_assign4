@@ -33,19 +33,22 @@ class Rnn:
     def forward(self, input_vec):
         print("rnn forward ...")
         with tf.variable_scope("rnn_" + str(self.index), reuse=tf.AUTO_REUSE):
-            if self.count % self.config.truncated_delta == 0:
-                W = tf.get_variable("W_" + str(self.index), [self.input_dimension + self.hidden_dimension,
-                                                             self.hidden_dimension])
-                B = tf.get_variable("B_" + str(self.index), [self.hidden_dimension])
-                W1 = tf.identity(self.W)
-                B1 = tf.identity(self.B)
-                self.graph.add_to_collection("W_" + str(self.index), W1)
-                self.graph.add_to_collection("B_" + str(self.index), B1)
-            else:
-                W1 = tf.get_collection("W_" + str(self.index))[-1]
-                B1 = tf.get_collection("B_" + str(self.index))[-1]
+            # if self.count % self.config.truncated_delta == 0:
+            #     W = tf.get_variable("W_" + str(self.index), [self.input_dimension + self.hidden_dimension,
+            #                                                  self.hidden_dimension])
+            #     B = tf.get_variable("B_" + str(self.index), [self.hidden_dimension])
+            #     W1 = tf.identity(self.W)
+            #     B1 = tf.identity(self.B)
+            #     self.graph.add_to_collection("W_" + str(self.index), W1)
+            #     self.graph.add_to_collection("B_" + str(self.index), B1)
+            # else:
+            #     W1 = tf.get_collection("W_" + str(self.index))[-1]
+            #     B1 = tf.get_collection("B_" + str(self.index))[-1]
+            W = tf.get_variable("W_" + str(self.index), [self.input_dimension + self.hidden_dimension,
+                                                         self.hidden_dimension])
+            B = tf.get_variable("B_" + str(self.index), [self.hidden_dimension])
             input_concat = tf.concat([input_vec, self.outputs[-1]], axis=1)
-            state = tf.nn.tanh(tf.add(tf.matmul(input_concat, W1), B1), name="hidden_states")
+            state = tf.nn.relu(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
             self.outputs.append(tf.nn.dropout(state, self.dropout_placeholder))
             self.count += 1
         return state

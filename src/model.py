@@ -53,18 +53,18 @@ class Model:
             grad_output = self.criterion.backward(scores, self.output_placeholder)
             grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
 
-            print('model backward starting ....')
-            for current in range(1, int(np.ceil(self.config.num_steps / float(self.config.truncated_delta))) + 1):
-                index = self.config.num_steps - current * self.config.truncated_delta
-                if index < -len(self.input_vecs):
-                    index = 0
-                grad_output = self.backward(self.input_vecs[index], grad_output)
+            # print('model backward starting ....')
+            # for current in range(1, int(np.ceil(self.config.num_steps / float(self.config.truncated_delta))) + 1):
+            #     index = self.config.num_steps - current * self.config.truncated_delta
+            #     if index < -len(self.input_vecs):
+            #         index = 0
+            #     grad_output = self.backward(self.input_vecs[index], grad_output)
 
             # self.embedding_grad = tf.add_n(self.embedding_grads) / (len(self.embedding_grads))
+            self.train_op = self._apply_gradients()
             self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
                                                           tf.float32), name='accuracy')
             # self.graph.clear_collection("embeddings")
-            self.train_op = self._apply_gradients()
             print('construct model done ...')
 
     def forward(self, input_vec):
@@ -166,14 +166,15 @@ class Model:
         return tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
 
     def _apply_gradients(self):
-        grad_and_vars = self.optimizer.compute_gradients(-self.loss, var_list=[self.U, self.B])
-        for model in self.models:
-            grad_and_vars += model.get_gradients()
-        # grad_and_vars.append((self.embedding_grad, self.embeddings))
-
-        grad_and_vars = self._clip_gradients(grad_and_vars)
-
-        return self.optimizer.apply_gradients(grad_and_vars)
+        # grad_and_vars = self.optimizer.compute_gradients(-self.loss, var_list=[self.U, self.B])
+        # for model in self.models:
+        #     grad_and_vars += model.get_gradients()
+        # # grad_and_vars.append((self.embedding_grad, self.embeddings))
+        #
+        # grad_and_vars = self._clip_gradients(grad_and_vars)
+        grads_vars = self.optimizer.compute_gradients(self.loss)
+        grads_vars = self._clip_gradients(grads_vars)
+        return self.optimizer.apply_gradients(grads_vars)
 
     def _clip_gradients(self, grad_and_vars):
         return [(tf.reshape(tf.clip_by_value(grad, -5.0, 5.0), tf.shape(var)), var) for grad, var in grad_and_vars]
