@@ -10,7 +10,7 @@ class Config:
         self.truncated_delta = 32
         self.vocab_size = 151
         self.embed_size = 151
-        self.num_steps = 1300
+        self.num_steps = 2948
         self.evaluate_every = 10
 
     def __str__(self):
