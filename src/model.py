@@ -17,6 +17,11 @@ class Model:
         self.graph = tf.get_default_graph()
         self.count = 0
         self.back_count = -1
+        self.input_vecs = []
+        self.prediction_tensor = []
+        self.accuracy_tensor = []
+        self.train_op = []
+        self.loss = []
         self.construct_model(n_layers, h, v, d)
 
     def construct_model(self, n_layers, h, v, d):
@@ -28,17 +33,21 @@ class Model:
         for i in range(1, n_layers):
             self.models.append(Rnn(h, h, self.dropout_placeholder, i))
 
-        print('model forward starting ....')
-        self.input_vecs = []
-        for i in range(self.config.seq_length):
-            input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
-            self.input_vecs.append(self.forward(input_vec))
-
         with tf.variable_scope('projection', reuse=tf.AUTO_REUSE):
             self.U = tf.get_variable(name='U', shape=[self.config.hidden_dim, self.config.num_classes],
                                      initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
             self.B = tf.get_variable(name='B', shape=[self.config.num_classes, ],
                                      initializer=tf.zeros_initializer(), trainable=True)
+
+        print('model forward starting ....')
+        for i in range(self.config.seq_length):
+            input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
+            self.input_vecs.append(self.forward(input_vec))
+            loss, prediction_tensor, train_op, accuracy_tensor = self.compute_graph_for_time_step(i)
+            self.loss.append(loss)
+            self.prediction_tensor.append(prediction_tensor)
+            self.train_op.append(train_op)
+            self.accuracy_tensor.append(accuracy_tensor)
 
     def forward(self, input_vec):
         print('model forward ....')
@@ -69,24 +78,23 @@ class Model:
 
         return grad_outputs[-1][1]
 
-    def add_variable_component_to_graph(self, num_steps):
-        print("variable_graph ...")
-        self.output = self._batch_norm(self.models[-1].outputs[num_steps], axes=[0])
+    def compute_graph_for_time_step(self, num_steps):
+        output = self._batch_norm(self.models[-1].outputs[num_steps], axes=[0])
         # output = self.models[-1].outputs[-1]
-        scores = self._score(self.output)
-        self.prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
-        self.loss = self.criterion.forward(scores, self.output_placeholder)
+        scores = self._score(output)
+        prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction_' + str(num_steps))
+        loss = self.criterion.forward(scores, self.output_placeholder)
 
         grad_output = self.criterion.backward(scores, self.output_placeholder)
         grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
-        self.train_op = self._apply_gradients()
-        self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
-                                                      tf.float32), name='accuracy')
-        print('construct model done ...')
+        train_op = self._apply_gradients(loss)
+        accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(prediction_tensor, self.output_placeholder),
+                                                 tf.float32), name='accuracy_' + str(num_steps))
+        return loss, prediction_tensor, train_op, accuracy_tensor
 
     def run_batch(self, sess: tf.Session, train_data, label_data=None):
-        self.add_variable_component_to_graph(train_data.shape[1])
-        sess.run(tf.global_variables_initializer())
+        seq_length = train_data.shape[1]
+        train_op = self.train_op[seq_length]
         if self.isTrain:
             drop_out = 1.0
         else:
@@ -97,7 +105,7 @@ class Model:
                 self.input_placeholder: train_data,
                 self.dropout_placeholder: drop_out
             }
-            return sess.run([self.prediction_tensor], feed_dict)
+            return sess.run([self.prediction_tensor[seq_length]], feed_dict)
 
         feed_dict = {
             self.input_placeholder: train_data,
@@ -106,10 +114,11 @@ class Model:
         }
 
         if self.isTrain:
-            loss, accuracy, prediction, _ = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor,
-                                                      self.train_op], feed_dict)
+            loss, accuracy, prediction, _ = sess.run([self.loss[seq_length], self.accuracy_tensor[seq_length],
+                                                      self.prediction_tensor[seq_length], train_op], feed_dict)
         else:
-            loss, accuracy, prediction = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor], feed_dict)
+            loss, accuracy, prediction = sess.run([self.loss[seq_length], self.accuracy_tensor[seq_length],
+                                                   self.prediction_tensor[seq_length]], feed_dict)
         return loss, accuracy, prediction
 
     def _add_placeholders(self):
@@ -131,7 +140,7 @@ class Model:
         return tf.nn.batch_normalization(tensor, mean, var, tf.zeros(mean.get_shape()),
                                          tf.ones(mean.get_shape()), 1e-6)
 
-    def _apply_gradients(self):
-        grads, variables = zip(*self.optimizer.compute_gradients(self.loss))
+    def _apply_gradients(self, loss):
+        grads, variables = zip(*self.optimizer.compute_gradients(loss))
         grads, _ = tf.clip_by_global_norm(grads, 1e2)
         return self.optimizer.apply_gradients(zip(grads, variables))
