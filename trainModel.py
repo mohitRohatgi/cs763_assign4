@@ -40,39 +40,22 @@ def main():
 
         logger_path = os.path.join(model_name, str(model_no))
         logger = HistoryLogger(config)
-        train_loss = 0
-        train_accuracy = 0
         for train_batch_data, train_label_batch in zip(train_data, train_label):
-            train_loss1, train_accuracy1, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
-            train_loss += train_loss1
-            train_accuracy += train_accuracy1
+            train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
             step += 1
+            print("train_step = ", step, " mean loss = ", train_loss, " mean accuracy = ", train_accuracy, " dir = ",
+                  model_name)
             if step % config.evaluate_every == 0:
                 model.isTrain = False
-                valid_accuracy = 0
-                valid_loss = 0
                 valid_batch_data, valid_batch_label = valid_data.__next__(), valid_label.__next__()
-                valid_loss1, valid_accuracy1, valid_prediction = model.run_batch(sess, valid_batch_data,
-                                                                                 valid_batch_label)
-                valid_accuracy += valid_accuracy1
-                valid_loss += valid_loss1
-                train_accuracy /= config.evaluate_every
-                train_loss /= config.evaluate_every
-                valid_accuracy /= config.evaluate_every
-                valid_loss /= config.evaluate_every
-                print("train_step = ", step, " mean loss = ", train_loss, " mean accuracy = ", train_accuracy,
-                      " dir = ", model_name)
-                print("valid_loss = ", valid_loss1, " accuracy = ", valid_accuracy1, " config = ", config)
-                logger.add(train_loss, train_accuracy, valid_loss1, valid_accuracy1, step)
-                train_loss = 0
-                train_accuracy = 0
+                valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_batch_data, valid_batch_label)
+                print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy, " config = ", config)
+                logger.add(train_loss, train_accuracy, valid_loss, valid_accuracy, step)
                 model.isTrain = True
                 saver.save(sess, os.path.join(logger_path + '_' + str(step)), write_meta_graph=save_meta_graph)
                 save_meta_graph = False
                 logger.save(logger_path)
-
     end = time.time() - start
-
     print(model_name, train_path, labels_path, " time = ", end)
 
 
