@@ -5,6 +5,8 @@ from config import Config
 from src.criterion import Criterion
 from src.rnn import Rnn
 
+import time
+
 
 class Model:
     def __init__(self, n_layers, h, v, d, is_train=True):
@@ -25,6 +27,7 @@ class Model:
         self.construct_model(n_layers, h, v, d)
 
     def construct_model(self, n_layers, h, v, d):
+        start = time.time()
         print('model construct model ...')
         self._add_placeholders()
         self.inputs = self._one_hot_layer()
@@ -43,11 +46,13 @@ class Model:
         for i in range(self.config.seq_length):
             input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
             self.input_vecs.append(self.forward(input_vec))
+            print("starting backward for seq length = ", i)
             loss, prediction_tensor, train_op, accuracy_tensor = self.compute_graph_for_time_step(i)
             self.loss.append(loss)
             self.prediction_tensor.append(prediction_tensor)
             self.train_op.append(train_op)
             self.accuracy_tensor.append(accuracy_tensor)
+        print("time taken for model creation = ", time.time() - start)
 
     def forward(self, input_vec):
         print('model forward ....')
