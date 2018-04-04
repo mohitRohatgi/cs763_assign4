@@ -24,7 +24,8 @@ def test():
 
     # Generate batches for one epoch
     batches, data_len = get_batch_data_iterator(1, data_path=test_path, label_path=None, mode='test',
-                                                seq_length=config.seq_length, batch_size=config.batch_size)
+                                                seq_length=config.seq_length, batch_size=config.batch_size,
+                                                bin_size=config.bin_size)
     with graph.as_default():
         sess = tf.Session(graph=graph)
         with sess.as_default():

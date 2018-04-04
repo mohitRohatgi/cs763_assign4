@@ -49,14 +49,24 @@ def load_label_data(labels_path):
 
 
 def pad_seq(sys_call, seq_length):
+    trim_sys_call = []
+
+    if len(sys_call) > seq_length:
+        for i in range(seq_length):
+            trim_sys_call.append(sys_call[i])
+        return trim_sys_call
+
     while len(sys_call) < seq_length:
         sys_call.append(0)
     return sys_call
 
 
-def pad_sys_calls(sys_calls, seq_length):
+def pad_sys_calls(sys_calls, seq_length, bin_size=50, max_seq_length=2948):
+    padding_length = int(np.round(seq_length / bin_size))
+    if padding_length > max_seq_length:
+        padding_length = int(max_seq_length / bin_size)
     for i, sys_call in enumerate(sys_calls):
-        sys_calls[i] = pad_seq(sys_call, seq_length)
+        sys_calls[i] = pad_seq(sys_call, padding_length)
     return np.array(sys_calls)
 
 
@@ -91,7 +101,8 @@ def get_batch_data(data, label, batch_size):
     return data_batch, label_batch, max_len
 
 
-def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_path=None, mode='train', saved=False):
+def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, bin_size=50,
+                            label_path=None, mode='train', saved=False):
     data = load_data(train_path=data_path, mode=mode, saved=saved)
     num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
     if label_path is not None:
@@ -105,6 +116,6 @@ def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_pa
         for batch_num in range(num_batches_per_epoch):
             train_data_batch, train_label_batch, max_train_length = get_batch_data(train_data, train_label, batch_size)
             valid_data_batch, valid_label_batch, max_valid_length = get_batch_data(valid_data, valid_label, batch_size)
-            train_data_batch_pad = pad_sys_calls(train_data_batch, max_train_length)
-            valid_data_batch_pad = pad_sys_calls(valid_data_batch, max_valid_length)
+            train_data_batch_pad = pad_sys_calls(train_data_batch, max_train_length, bin_size, seq_length)
+            valid_data_batch_pad = pad_sys_calls(valid_data_batch, max_valid_length, bin_size, seq_length)
             yield train_data_batch_pad, np.array(train_label_batch), valid_data_batch_pad, np.array(valid_label_batch)

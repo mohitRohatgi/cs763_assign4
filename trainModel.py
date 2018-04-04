@@ -27,7 +27,7 @@ def main():
     config = Config()
     data_gen = get_batch_data_iterator(
         n_epoch=config.n_epoch, data_path=train_path, label_path=labels_path, seq_length=config.seq_length,
-        batch_size=config.batch_size, mode='train', saved=False)
+        batch_size=config.batch_size, mode='train', saved=False, bin_size=config.bin_size)
     model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.embed_size)
 
     with tf.Session().as_default() as sess:

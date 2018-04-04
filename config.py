@@ -4,6 +4,7 @@ class Config:
         self.n_epoch = 500
         self.seq_length = 2948
         self.batch_size = 1
+        self.bin_size = 50
         self.n_layers = 1
         self.hidden_dim = 512
         self.num_classes = 2

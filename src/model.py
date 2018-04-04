@@ -24,6 +24,8 @@ class Model:
         self.accuracy_tensor = []
         self.train_op = []
         self.loss = []
+        self.bin_size = 50
+        self.max_length = 2000
         self.construct_model(n_layers, h, v, d)
 
     def construct_model(self, n_layers, h, v, d):
@@ -43,15 +45,17 @@ class Model:
                                      initializer=tf.zeros_initializer(), trainable=True)
 
         print('model forward starting ....')
+        backward_list = range(self.bin_size, self.config.seq_length, self.bin_size)
         for i in range(self.config.seq_length):
             input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
             self.input_vecs.append(self.forward(input_vec))
-            print("starting backward for seq length = ", i)
-            loss, prediction_tensor, train_op, accuracy_tensor = self.compute_graph_for_time_step(i)
-            self.loss.append(loss)
-            self.prediction_tensor.append(prediction_tensor)
-            self.train_op.append(train_op)
-            self.accuracy_tensor.append(accuracy_tensor)
+            if i in backward_list:
+                print("starting backward for seq length = ", i)
+                loss, prediction_tensor, train_op, accuracy_tensor = self.compute_graph_for_time_step(i)
+                self.loss.append(loss)
+                self.prediction_tensor.append(prediction_tensor)
+                self.train_op.append(train_op)
+                self.accuracy_tensor.append(accuracy_tensor)
         print("time taken for model creation = ", time.time() - start)
 
     def forward(self, input_vec):
