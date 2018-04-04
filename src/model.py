@@ -20,15 +20,25 @@ class Model:
         self.construct_model(n_layers, h, v, d)
 
     def construct_model(self, n_layers, h, v, d):
-        with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
+        print('model construct model ...')
+        self._add_placeholders()
+        self.inputs = self._one_hot_layer()
 
-            print('model construct model ...')
-            self._add_placeholders()
-            self.inputs = self._one_hot_layer()
+        self.models.append(Rnn(d, h, self.dropout_placeholder, 0))
+        for i in range(1, n_layers):
+            self.models.append(Rnn(h, h, self.dropout_placeholder, i))
 
-            self.models.append(Rnn(d, h, self.dropout_placeholder, 0))
-            for i in range(1, n_layers):
-                self.models.append(Rnn(h, h, self.dropout_placeholder, i))
+        print('model forward starting ....')
+        self.input_vecs = []
+        for i in range(self.config.seq_length):
+            input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
+            self.input_vecs.append(self.forward(input_vec))
+
+        with tf.variable_scope('projection', reuse=tf.AUTO_REUSE):
+            U = tf.get_variable(name='U', shape=[self.config.hidden_dim, self.config.num_classes],
+                                initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
+            B = tf.get_variable(name='B', shape=[self.config.num_classes, ],
+                                initializer=tf.zeros_initializer(), trainable=True)
 
     def forward(self, input_vec):
         print('model forward ....')
@@ -60,12 +70,7 @@ class Model:
         return grad_outputs[-1][1]
 
     def add_variable_component_to_graph(self, num_steps):
-        print('model forward starting ....')
-        self.input_vecs = []
-        for i in range(num_steps):
-            input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
-            self.input_vecs.append(self.forward(input_vec))
-        print('construct model done ...')
+        print("variable_graph ...")
         self.output = self._batch_norm(self.models[-1].outputs[num_steps], axes=[0])
         # output = self.models[-1].outputs[-1]
         scores = self._score(self.output)
@@ -76,7 +81,8 @@ class Model:
         grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
         self.train_op = self._apply_gradients()
         self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
-                                                          tf.float32), name='accuracy')
+                                                      tf.float32), name='accuracy')
+        print('construct model done ...')
 
     def run_batch(self, sess: tf.Session, train_data, label_data=None):
         self.add_variable_component_to_graph(train_data.shape[1])
