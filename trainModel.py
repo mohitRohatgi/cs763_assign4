@@ -33,7 +33,7 @@ def main():
     with tf.Session().as_default() as sess:
         step = 0
         sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=10000)
+        saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=100000)
 
         if not os.path.exists(model_name):
             os.makedirs(model_name)
@@ -51,20 +51,19 @@ def main():
                 model.isTrain = False
                 valid_accuracy = 0
                 valid_loss = 0
-                for i in range(config.evaluate_every):
-                    valid_batch_data, valid_batch_label = valid_data.__next__(), valid_label.__next__()
-                    valid_loss1, valid_accuracy1, valid_prediction = model.run_batch(sess, valid_batch_data,
-                                                                                    valid_batch_label)
-                    valid_accuracy += valid_accuracy1
-                    valid_loss += valid_loss1
+                valid_batch_data, valid_batch_label = valid_data.__next__(), valid_label.__next__()
+                valid_loss1, valid_accuracy1, valid_prediction = model.run_batch(sess, valid_batch_data,
+                                                                                 valid_batch_label)
+                valid_accuracy += valid_accuracy1
+                valid_loss += valid_loss1
                 train_accuracy /= config.evaluate_every
                 train_loss /= config.evaluate_every
                 valid_accuracy /= config.evaluate_every
                 valid_loss /= config.evaluate_every
                 print("train_step = ", step, " mean loss = ", train_loss, " mean accuracy = ", train_accuracy,
                       " dir = ", model_name)
-                print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy, " config = ", config)
-                logger.add(train_loss, train_accuracy, valid_loss, valid_accuracy, step)
+                print("valid_loss = ", valid_loss1, " accuracy = ", valid_accuracy1, " config = ", config)
+                logger.add(train_loss, train_accuracy, valid_loss1, valid_accuracy1, step)
                 train_loss = 0
                 train_accuracy = 0
                 model.isTrain = True

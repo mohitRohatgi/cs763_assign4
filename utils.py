@@ -60,10 +60,13 @@ def pad_sys_calls(sys_calls, seq_length):
     return np.array(sys_calls)
 
 
-def batch_iter(n_epoch, data, batch_size):
+def batch_iter(n_epoch, data, batch_size, shuffled=True):
     num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
     for _ in range(n_epoch):
-        shuffled_data = data[np.random.permutation(np.arange(len(data)))]
+        if shuffled:
+            shuffled_data = data[np.random.permutation(np.arange(len(data)))]
+        else:
+            shuffled_data = data
         for batch_num in range(num_batches_per_epoch):
             start_index = batch_num * batch_size
             end_index = min((batch_num + 1) * batch_size, len(data))
@@ -102,7 +105,7 @@ def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_pa
     data = np.array(pad_sys_calls(data, seq_length))
 
     if mode != 'train':
-        return batch_iter(n_epoch, data, batch_size), len(data)
+        return batch_iter(n_epoch, data, batch_size, shuffled=False), len(data)
 
     indices = np.random.permutation(np.arange(len(data)))
     shuffled_data = data[indices]

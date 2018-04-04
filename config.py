@@ -1,7 +1,7 @@
 class Config:
     def __init__(self):
-        self.lr = 1e-5
-        self.n_epoch = 200
+        self.lr = 1e-3
+        self.n_epoch = 500
         self.seq_length = 2948
         self.batch_size = 64
         self.n_layers = 1
@@ -10,7 +10,7 @@ class Config:
         self.truncated_delta = 32
         self.vocab_size = 151
         self.embed_size = 151
-        self.num_steps = 2948
+        self.num_steps = 1200
         self.evaluate_every = 10
 
     def __str__(self):
