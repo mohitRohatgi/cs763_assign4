@@ -60,66 +60,51 @@ def pad_sys_calls(sys_calls, seq_length):
     return np.array(sys_calls)
 
 
-def batch_iter(n_epoch, data, batch_size, shuffled=True):
-    num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
-    for _ in range(n_epoch):
-        if shuffled:
-            shuffled_data = data[np.random.permutation(np.arange(len(data)))]
+def train_valid_split(data, labels, split_ratio):
+    num_valid = int(np.ceil(split_ratio * len(data)))
+    valid_indices = np.random.randint(0, len(data), num_valid)
+    valid_data = []
+    valid_label = []
+    train_data = []
+    train_label = []
+    for i in range(len(data)):
+        if i in valid_indices:
+            valid_data.append(data[i])
+            valid_label.append(labels[i])
         else:
-            shuffled_data = data
-        for batch_num in range(num_batches_per_epoch):
-            start_index = batch_num * batch_size
-            end_index = min((batch_num + 1) * batch_size, len(data))
-            if end_index - start_index < batch_size:
-                start_index = end_index - batch_size
-            batch_data = shuffled_data[start_index:end_index]
-            yield batch_data
+            train_label.append(labels[i])
+            train_data.append(data[i])
+    return train_data, valid_data, train_label, valid_label
 
 
-def get_freq(data, bin_size=50):
-    freqs = {}
-    for sys_call in data:
-        freq = int(np.ceil(len(sys_call) / float(bin_size)))
-        if freq not in freqs:
-            freqs[freq] = 0
-        freqs[freq] += 1
-    median = int(statistics.median(freqs.values()))
-    for k, v in freqs.items():
-        if v == median:
-            return k, freqs
-
-
-def preprocess(data, median_freq):
-    pre_processed_data = []
-    for sys_call in data:
-        start = 0
-        while start < len(sys_call) - median_freq:
-            pre_processed_data.append(sys_call[start: min(start + median_freq, len(sys_call))])
-            start += median_freq
-    return pre_processed_data
+def get_batch_data(data, label, batch_size):
+    assert len(data) == len(label)
+    indices = np.random.randint(0, len(data), batch_size)
+    data_batch = []
+    label_batch = []
+    max_len = 0
+    for index in indices:
+        if max_len < len(data[index]):
+            max_len = len(data[index])
+        data_batch.append(data[index])
+        label_batch.append(label[index])
+    return data_batch, label_batch, max_len
 
 
 def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, label_path=None, mode='train', saved=False):
     data = load_data(train_path=data_path, mode=mode, saved=saved)
-    # freq = get_freq(data)
-    data = np.array(pad_sys_calls(data, seq_length))
-
-    if mode != 'train':
-        return batch_iter(n_epoch, data, batch_size, shuffled=False), len(data)
-
-    indices = np.random.permutation(np.arange(len(data)))
-    shuffled_data = data[indices]
-    boundary = int(len(data) * 0.8)
-    train_labels, valid_labels = None, None
-
+    num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
     if label_path is not None:
         labels = load_label_data(label_path)
-        shuffled_label = labels[indices]
-        train_labels, valid_labels = shuffled_label[:boundary], shuffled_label[boundary:]
+    else:
+        for i in range(len(data)):
+            yield np.array(data[i])
 
-    train_data, valid_data = shuffled_data[:boundary], shuffled_data[boundary:]
-    train_iterator = batch_iter(n_epoch, train_data, batch_size)
-    valid_iterator = batch_iter(n_epoch, valid_data, batch_size)
-    train_label_iter = batch_iter(n_epoch, train_labels, batch_size)
-    valid_label_iter = batch_iter(n_epoch, valid_labels, batch_size)
-    return train_iterator, train_label_iter, valid_iterator, valid_label_iter
+    for i in range(n_epoch):
+        train_data, valid_data, train_label, valid_label = train_valid_split(data, labels, 0.8)
+        for batch_num in range(num_batches_per_epoch):
+            train_data_batch, train_label_batch, max_train_length = get_batch_data(train_data, train_label, batch_size)
+            valid_data_batch, valid_label_batch, max_valid_length = get_batch_data(valid_data, valid_label, batch_size)
+            train_data_batch_pad = pad_sys_calls(train_data_batch, max_train_length)
+            valid_data_batch_pad = pad_sys_calls(valid_data_batch, max_valid_length)
+            yield train_data_batch_pad, np.array(train_label_batch), valid_data_batch_pad, np.array(valid_label_batch)

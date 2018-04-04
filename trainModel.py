@@ -25,7 +25,7 @@ def main():
     if model_name[-1] != '/':
         model_name += '/'
     config = Config()
-    train_data, train_label, valid_data, valid_label = get_batch_data_iterator(
+    data_gen = get_batch_data_iterator(
         n_epoch=config.n_epoch, data_path=train_path, label_path=labels_path, seq_length=config.seq_length,
         batch_size=config.batch_size, mode='train', saved=False)
     model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.embed_size)
@@ -40,14 +40,14 @@ def main():
 
         logger_path = os.path.join(model_name, str(model_no))
         logger = HistoryLogger(config)
-        for train_batch_data, train_label_batch in zip(train_data, train_label):
+        train_batch_data, train_label_batch, valid_batch_data, valid_batch_label = data_gen.__next__()
+        while train_batch_data is not None:
             train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
             step += 1
             print("train_step = ", step, " mean loss = ", train_loss, " mean accuracy = ", train_accuracy, " dir = ",
                   model_name)
             if step % config.evaluate_every == 0:
                 model.isTrain = False
-                valid_batch_data, valid_batch_label = valid_data.__next__(), valid_label.__next__()
                 valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_batch_data, valid_batch_label)
                 print("valid_loss = ", valid_loss, " accuracy = ", valid_accuracy, " config = ", config)
                 logger.add(train_loss, train_accuracy, valid_loss, valid_accuracy, step)
@@ -55,6 +55,7 @@ def main():
                 saver.save(sess, os.path.join(logger_path + '_' + str(step)), write_meta_graph=save_meta_graph)
                 save_meta_graph = False
                 logger.save(logger_path)
+            train_batch_data, train_label_batch, valid_batch_data, valid_batch_label = data_gen.__next__()
     end = time.time() - start
     print(model_name, train_path, labels_path, " time = ", end)
 

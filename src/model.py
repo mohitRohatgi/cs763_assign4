@@ -30,28 +30,6 @@ class Model:
             for i in range(1, n_layers):
                 self.models.append(Rnn(h, h, self.dropout_placeholder, i))
 
-            print('model forward starting ....')
-            self.input_vecs = []
-            for i in range(self.config.num_steps):
-                input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
-                self.input_vecs.append(self.forward(input_vec))
-
-            for i in range(n_layers):
-                self.models[i].dropout(self.dropout_placeholder)
-
-            self.output = self._batch_norm(self.models[-1].outputs[-1], axes=[0])
-            # output = self.models[-1].outputs[-1]
-            scores = self._score(self.output)
-            self.prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
-            self.loss = self.criterion.forward(scores, self.output_placeholder)
-
-            grad_output = self.criterion.backward(scores, self.output_placeholder)
-            grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
-            self.train_op = self._apply_gradients()
-            self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
-                                                          tf.float32), name='accuracy')
-            print('construct model done ...')
-
     def forward(self, input_vec):
         print('model forward ....')
         for rnn in self.models:
@@ -63,7 +41,7 @@ class Model:
         print('model backward ...')
         grad_outputs = np.empty(len(self.models), dtype=object)
 
-        stop = self.config.num_steps - self.models[0].extracted * self.config.truncated_delta
+        stop = self.config.seq_length - self.models[0].extracted * self.config.truncated_delta
         start = stop - self.config.truncated_delta
         ys = self.models[-1].outputs[stop]
 
@@ -81,7 +59,27 @@ class Model:
 
         return grad_outputs[-1][1]
 
+    def add_variable_component_to_graph(self, num_steps):
+        print('model forward starting ....')
+        self.input_vecs = []
+        for i in range(num_steps):
+            input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
+            self.input_vecs.append(self.forward(input_vec))
+        print('construct model done ...')
+        self.output = self._batch_norm(self.models[-1].outputs[num_steps], axes=[0])
+        # output = self.models[-1].outputs[-1]
+        scores = self._score(self.output)
+        self.prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
+        self.loss = self.criterion.forward(scores, self.output_placeholder)
+
+        grad_output = self.criterion.backward(scores, self.output_placeholder)
+        grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
+        self.train_op = self._apply_gradients()
+        self.accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(self.prediction_tensor, self.output_placeholder),
+                                                          tf.float32), name='accuracy')
+
     def run_batch(self, sess: tf.Session, train_data, label_data=None):
+        self.add_variable_component_to_graph(train_data.shape[1])
         if self.isTrain:
             drop_out = 1.0
         else:
@@ -108,14 +106,14 @@ class Model:
         return loss, accuracy, prediction
 
     def _add_placeholders(self):
-        self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.seq_length), name="input")
+        self.input_placeholder = tf.placeholder(tf.int32, shape=(None, None), name="input")
         self.output_placeholder = tf.placeholder(tf.int32, shape=(None, ), name="output")
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=(), name="dropout")
 
     def _one_hot_layer(self):
         one_hots = []
         for i in range(self.config.batch_size):
-            one_hots.append(tf.expand_dims(tf.one_hot(self.input_placeholder[i], self.config.vocab_size), axis=0))
+            one_hots.append([tf.one_hot(self.input_placeholder[i], self.config.vocab_size)])
         return tf.concat(one_hots, axis=0)
 
     def _score(self, output):

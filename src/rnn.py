@@ -33,22 +33,11 @@ class Rnn:
     def forward(self, input_vec):
         print("rnn forward ...")
         with tf.variable_scope("rnn_" + str(self.index), reuse=tf.AUTO_REUSE):
-            # if self.count % self.config.truncated_delta == 0:
-            #     W = tf.get_variable("W_" + str(self.index), [self.input_dimension + self.hidden_dimension,
-            #                                                  self.hidden_dimension])
-            #     B = tf.get_variable("B_" + str(self.index), [self.hidden_dimension])
-            #     W1 = tf.identity(self.W)
-            #     B1 = tf.identity(self.B)
-            #     self.graph.add_to_collection("W_" + str(self.index), W1)
-            #     self.graph.add_to_collection("B_" + str(self.index), B1)
-            # else:
-            #     W1 = tf.get_collection("W_" + str(self.index))[-1]
-            #     B1 = tf.get_collection("B_" + str(self.index))[-1]
             W = tf.get_variable("W_" + str(self.index), [self.input_dimension + self.hidden_dimension,
                                                          self.hidden_dimension])
             B = tf.get_variable("B_" + str(self.index), [self.hidden_dimension])
             input_concat = tf.concat([input_vec, self.outputs[-1]], axis=1)
-            state = tf.nn.relu(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
+            state = tf.nn.tanh(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
             self.outputs.append(tf.nn.dropout(state, self.dropout_placeholder))
             self.count += 1
         return state
@@ -70,20 +59,3 @@ class Rnn:
         self.back_count -= 1
         return input_vec_grads
 
-    def dropout(self, dropout_tensor):
-        self.outputs = [tf.nn.dropout(output, dropout_tensor) for output in self.outputs]
-
-    def get_output(self):
-        if self.extracted * self.config.truncated_delta >= len(self.outputs):
-            return self.outputs[1]
-        return self.outputs[-self.extracted * self.config.truncated_delta - 1]
-
-    def get_gradients(self):
-        self.gradW = tf.add_n(self.gradWs) / float(len(self.gradWs))
-        self.gradB = tf.add_n(self.gradBs) / float(len(self.gradBs))
-        tf.get_default_graph().clear_collection("W_" + str(self.index))
-        tf.get_default_graph().clear_collection("B_" + str(self.index))
-
-        return [(self.gradW, self.W), (self.gradB, self.B),
-                (tf.reshape(self.initial_state_grad, [self.config.batch_size, self.config.hidden_dim]),
-                 self.initial_state)]
