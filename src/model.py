@@ -35,10 +35,10 @@ class Model:
             self.input_vecs.append(self.forward(input_vec))
 
         with tf.variable_scope('projection', reuse=tf.AUTO_REUSE):
-            U = tf.get_variable(name='U', shape=[self.config.hidden_dim, self.config.num_classes],
-                                initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
-            B = tf.get_variable(name='B', shape=[self.config.num_classes, ],
-                                initializer=tf.zeros_initializer(), trainable=True)
+            self.U = tf.get_variable(name='U', shape=[self.config.hidden_dim, self.config.num_classes],
+                                     initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
+            self.B = tf.get_variable(name='B', shape=[self.config.num_classes, ],
+                                     initializer=tf.zeros_initializer(), trainable=True)
 
     def forward(self, input_vec):
         print('model forward ....')
@@ -86,6 +86,7 @@ class Model:
 
     def run_batch(self, sess: tf.Session, train_data, label_data=None):
         self.add_variable_component_to_graph(train_data.shape[1])
+        sess.run(tf.global_variables_initializer())
         if self.isTrain:
             drop_out = 1.0
         else:
@@ -123,10 +124,7 @@ class Model:
         return tf.concat(one_hots, axis=0)
 
     def _score(self, output):
-        with tf.variable_scope('projection', reuse=tf.AUTO_REUSE):
-            U = tf.get_variable(name='U', shape=[self.config.hidden_dim, self.config.num_classes])
-            B = tf.get_variable(name='B', shape=[self.config.num_classes, ])
-        return tf.add(tf.matmul(output, U), B, name='score')
+        return tf.add(tf.matmul(output, self.U), self.B, name='score')
 
     def _batch_norm(self, tensor, axes):
         mean, var = tf.nn.moments(tensor, axes)

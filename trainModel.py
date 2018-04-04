@@ -32,7 +32,6 @@ def main():
 
     with tf.Session().as_default() as sess:
         step = 0
-        sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=100000)
 
         if not os.path.exists(model_name):
@@ -41,6 +40,7 @@ def main():
         logger_path = os.path.join(model_name, str(model_no))
         logger = HistoryLogger(config)
         train_batch_data, train_label_batch, valid_batch_data, valid_batch_label = data_gen.__next__()
+
         while train_batch_data is not None:
             train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
             step += 1
