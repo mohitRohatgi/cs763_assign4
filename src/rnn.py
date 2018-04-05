@@ -58,4 +58,3 @@ class Rnn:
         self.initial_state_grad = tf.gradients(ys=ys, xs=self.initial_state, grad_ys=grad_output)
         self.back_count -= 1
         return input_vec_grads
-

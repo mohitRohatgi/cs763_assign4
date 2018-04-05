@@ -60,21 +60,21 @@ def main():
                     valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_data[i], valid_label[i])
                     mean_valid_loss += valid_loss
                     mean_valid_accuracy += valid_accuracy
-                    logger.add(train_loss, train_accuracy, valid_loss, valid_accuracy, step)
                     saver.save(sess, os.path.join(logger_path + '_' + str(step)), write_meta_graph=save_meta_graph)
                     save_meta_graph = False
                     logger.save(logger_path)
 
-                valid_data = []
-                valid_label = []
                 mean_valid_loss /= config.evaluate_every
                 mean_valid_accuracy /= config.evaluate_every
                 mean_train_loss /= config.evaluate_every
                 mean_train_accuracy /= config.evaluate_every
+                logger.add(mean_train_loss, mean_train_accuracy, mean_valid_loss, mean_valid_accuracy, step)
                 print("mean valid loss = ", mean_valid_loss, " mean valid accuracy = ", mean_valid_accuracy,
                       " config = ", config)
                 print("mean train loss = ", mean_train_loss, " mean train accuracy = ", mean_train_accuracy,
                       " config = ", config)
+                valid_data = []
+                valid_label = []
                 mean_train_loss = 0.0
                 mean_train_accuracy = 0.0
                 model.isTrain = True
