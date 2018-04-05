@@ -45,10 +45,10 @@ class Model:
                                      initializer=tf.zeros_initializer(), trainable=True)
 
         print('model forward starting ....')
-        for i in range(self.config.bins[-1] + 1):
+        for i in range(self.config.bins[-1]):
             input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
             self.input_vecs.append(self.forward(input_vec))
-            if i in self.config.bins:
+            if i+1 in self.config.bins:
                 print("starting backward for seq length = ", i)
                 loss, prediction_tensor, train_op, accuracy_tensor = self.compute_graph_for_time_step(i)
                 self.loss.append(loss)

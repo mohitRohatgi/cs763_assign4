@@ -43,25 +43,30 @@ def main():
         sess.run(tf.global_variables_initializer())
         mean_train_loss = 0.0
         mean_train_accuracy = 0.0
+        valid_data = []
+        valid_label = []
         while train_batch_data is not None:
             train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
+            valid_data.append(valid_batch_data)
+            valid_label.append(valid_batch_label)
             step += 1
             mean_train_loss += train_loss
             mean_train_accuracy += train_accuracy
-            print("train_step = ", step, " train loss = ", train_loss, " train accuracy = ", train_accuracy, " dir = ",
-                  model_name)
             if step % config.evaluate_every == 0:
                 model.isTrain = False
                 mean_valid_loss, mean_valid_accuracy = 0.0, 0.0
-                for _ in range(config.evaluate_every):
-                    valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_batch_data,
-                                                                                   valid_batch_label)
+
+                for i in range(config.evaluate_every):
+                    valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_data[i], valid_label[i])
                     mean_valid_loss += valid_loss
                     mean_valid_accuracy += valid_accuracy
                     logger.add(train_loss, train_accuracy, valid_loss, valid_accuracy, step)
                     saver.save(sess, os.path.join(logger_path + '_' + str(step)), write_meta_graph=save_meta_graph)
                     save_meta_graph = False
                     logger.save(logger_path)
+
+                valid_data = []
+                valid_label = []
                 mean_valid_loss /= config.evaluate_every
                 mean_valid_accuracy /= config.evaluate_every
                 mean_train_loss /= config.evaluate_every
