@@ -45,11 +45,10 @@ class Model:
                                      initializer=tf.zeros_initializer(), trainable=True)
 
         print('model forward starting ....')
-        backward_list = range(self.bin_size, self.config.seq_length, self.bin_size)
-        for i in range(self.config.seq_length):
+        for i in range(self.config.bins[-1] + 1):
             input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
             self.input_vecs.append(self.forward(input_vec))
-            if i in backward_list:
+            if i in self.config.bins:
                 print("starting backward for seq length = ", i)
                 loss, prediction_tensor, train_op, accuracy_tensor = self.compute_graph_for_time_step(i)
                 self.loss.append(loss)
@@ -103,7 +102,8 @@ class Model:
 
     def run_batch(self, sess: tf.Session, train_data, label_data=None):
         seq_length = train_data.shape[1]
-        train_op = self.train_op[seq_length]
+        index = self.config.bins.index(seq_length)
+        train_op = self.train_op[index]
         if self.isTrain:
             drop_out = 1.0
         else:
@@ -114,7 +114,7 @@ class Model:
                 self.input_placeholder: train_data,
                 self.dropout_placeholder: drop_out
             }
-            return sess.run([self.prediction_tensor[seq_length]], feed_dict)
+            return sess.run([self.prediction_tensor[index]], feed_dict)
 
         feed_dict = {
             self.input_placeholder: train_data,
@@ -123,11 +123,11 @@ class Model:
         }
 
         if self.isTrain:
-            loss, accuracy, prediction, _ = sess.run([self.loss[seq_length], self.accuracy_tensor[seq_length],
-                                                      self.prediction_tensor[seq_length], train_op], feed_dict)
+            loss, accuracy, prediction, _ = sess.run([self.loss[index], self.accuracy_tensor[index],
+                                                      self.prediction_tensor[index], train_op], feed_dict)
         else:
-            loss, accuracy, prediction = sess.run([self.loss[seq_length], self.accuracy_tensor[seq_length],
-                                                   self.prediction_tensor[seq_length]], feed_dict)
+            loss, accuracy, prediction = sess.run([self.loss[index], self.accuracy_tensor[index],
+                                                   self.prediction_tensor[index]], feed_dict)
         return loss, accuracy, prediction
 
     def _add_placeholders(self):

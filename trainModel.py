@@ -27,7 +27,7 @@ def main():
     config = Config()
     data_gen = get_batch_data_iterator(
         n_epoch=config.n_epoch, data_path=train_path, label_path=labels_path, seq_length=config.seq_length,
-        batch_size=config.batch_size, mode='train', saved=False, bin_size=config.bin_size)
+        batch_size=config.batch_size, mode='train', saved=False, bins=config.bins)
     model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.embed_size)
 
     with tf.Session().as_default() as sess:
@@ -40,7 +40,7 @@ def main():
         logger_path = os.path.join(model_name, str(model_no))
         logger = HistoryLogger(config)
         train_batch_data, train_label_batch, valid_batch_data, valid_batch_label = data_gen.__next__()
-
+        sess.run(tf.global_variables_initializer())
         while train_batch_data is not None:
             train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
             step += 1
