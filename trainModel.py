@@ -62,13 +62,13 @@ def main():
                     mean_valid_accuracy += valid_accuracy
                     saver.save(sess, os.path.join(logger_path + '_' + str(step)), write_meta_graph=save_meta_graph)
                     save_meta_graph = False
-                    logger.save(logger_path)
 
                 mean_valid_loss /= config.evaluate_every
                 mean_valid_accuracy /= config.evaluate_every
                 mean_train_loss /= config.evaluate_every
                 mean_train_accuracy /= config.evaluate_every
                 logger.add(mean_train_loss, mean_train_accuracy, mean_valid_loss, mean_valid_accuracy, step)
+                logger.save(logger_path)
                 print("mean valid loss = ", mean_valid_loss, " mean valid accuracy = ", mean_valid_accuracy,
                       " config = ", config)
                 print("mean train loss = ", mean_train_loss, " mean train accuracy = ", mean_train_accuracy,

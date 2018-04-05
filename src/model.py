@@ -45,7 +45,7 @@ class Model:
                                      initializer=tf.zeros_initializer(), trainable=True)
 
         print('model forward starting ....')
-        for i in range(self.config.bins[-1]):
+        for i in range(self.config.bins[-2]):
             input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
             self.input_vecs.append(self.forward(input_vec))
             if i+1 in self.config.bins:
