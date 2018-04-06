@@ -115,4 +115,4 @@ def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, bins,
                 yield train_data_batch_pad, np.array(train_label_batch), valid_data_batch_pad, np.array(valid_label_batch)
     else:
         for i in range(len(data)):
-            yield np.array(pad_sys_calls(data[i], len(data[i]), bins))
+            yield pad_sys_calls([data[i]], len(data[i]), bins)

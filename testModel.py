@@ -23,9 +23,8 @@ def test():
     config = logger.config
 
     # Generate batches for one epoch
-    batches, data_len = get_batch_data_iterator(1, data_path=test_path, label_path=None, mode='test',
-                                                seq_length=config.seq_length, batch_size=config.batch_size,
-                                                bins=config.bins)
+    data_gen = get_batch_data_iterator(1, data_path=test_path, label_path=None, mode='test',
+                                       seq_length=config.seq_length, batch_size=config.batch_size, bins=config.bins)
     with graph.as_default():
         sess = tf.Session(graph=graph)
         with sess.as_default():
@@ -35,36 +34,27 @@ def test():
             saver.restore(sess, logger.best_model)
 
             # Get the placeholders from the graph by name
-            input_x = graph.get_operation_by_name("model/input").outputs[0]
+            input_x = graph.get_operation_by_name("input").outputs[0]
 
             # input_y = graph.get_operation_by_name("input_y").outputs[0]
-            dropout_keep_prob = graph.get_operation_by_name("model/dropout").outputs[0]
-
-            # Tensors we want to evaluate
-            predictions = graph.get_operation_by_name("model/prediction").outputs[0]
+            dropout_keep_prob = graph.get_operation_by_name("dropout").outputs[0]
 
             # Collect the predictions here
             all_predictions = []
 
-            for x_test_batch in batches:
-                batch_predictions = sess.run(predictions, {input_x: x_test_batch, dropout_keep_prob: 1.0})
-                all_predictions.append(batch_predictions)
-
-    index1 = data_len - config.batch_size - 1
-    index2 = data_len - data_len % config.batch_size
-    predictions = []
-
-    index = 0
-    for prediction_batch in all_predictions:
-        for prediction in prediction_batch:
-            if not (index1 < index < index2):
-                predictions.append(prediction)
-            index += 1
-    del all_predictions
+            while True:
+                try:
+                    batches, data_len = data_gen.__next__()
+                    # Tensors we want to evaluate
+                    predictions = graph.get_operation_by_name("prediction_" + str(data_len - 1)).outputs[0]
+                    batch_predictions = sess.run(predictions, {input_x: batches, dropout_keep_prob: 1.0})
+                    all_predictions.append(batch_predictions[0])
+                except:
+                    break
 
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'testPrediction.bin'), 'w') as f:
         f.write("id,label\n")
-        for line_id, prediction in enumerate(predictions):
+        for line_id, prediction in enumerate(all_predictions):
             f.write(str(line_id) + "," + str(prediction) + "\n")
 
 
