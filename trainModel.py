@@ -32,7 +32,7 @@ def main():
 
     with tf.Session().as_default() as sess:
         step = 0
-        saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=100000)
+        saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=1000000)
 
         if not os.path.exists(model_name):
             os.makedirs(model_name)
@@ -74,9 +74,9 @@ def main():
                 mean_train_accuracy /= config.evaluate_every
                 logger.add(mean_train_loss, mean_train_accuracy, mean_valid_loss, mean_valid_accuracy, step)
                 logger.save(logger_path)
-                print("mean valid loss = ", mean_valid_loss, " mean valid accuracy = ", mean_valid_accuracy,
+                print("step = ", step, "mean valid loss = ", mean_valid_loss, " mean valid accuracy = ", mean_valid_accuracy,
                       " config = ", config)
-                print("mean train loss = ", mean_train_loss, " mean train accuracy = ", mean_train_accuracy,
+                print("step = ", step, "mean train loss = ", mean_train_loss, " mean train accuracy = ", mean_train_accuracy,
                       " config = ", config)
                 valid_data = []
                 valid_label = []
