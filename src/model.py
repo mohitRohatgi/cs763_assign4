@@ -89,7 +89,7 @@ class Model:
         # output = self.models[-1].outputs[-1]
         scores = self._score(output)
         prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction_' + str(num_steps))
-        loss = self.criterion.forward(scores, self.output_placeholder, index=num_steps)
+        loss = self.criterion.forward(scores, self.output_placeholder)
 
         grad_output = self.criterion.backward(scores, self.output_placeholder)
         grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
