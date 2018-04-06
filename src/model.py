@@ -24,8 +24,6 @@ class Model:
         self.accuracy_tensor = []
         self.train_op = []
         self.loss = []
-        self.bin_size = 50
-        self.max_length = 2000
         self.construct_model(n_layers, h, v, d)
 
     def construct_model(self, n_layers, h, v, d):
@@ -45,7 +43,7 @@ class Model:
                                      initializer=tf.zeros_initializer(), trainable=True)
 
         print('model forward starting ....')
-        for i in range(self.config.bins[-2]):
+        for i in range(self.config.bins[-1]):
             input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
             self.input_vecs.append(self.forward(input_vec))
             if i+1 in self.config.bins:
@@ -100,9 +98,8 @@ class Model:
                                                  tf.float32), name='accuracy_' + str(num_steps))
         return loss, prediction_tensor, train_op, accuracy_tensor
 
-    def run_batch(self, sess: tf.Session, train_data, label_data=None):
-        seq_length = train_data.shape[1]
-        index = self.config.bins.index(seq_length)
+    def run_batch(self, sess: tf.Session, train_data, train_length, label_data=None):
+        index = self.config.bins.index(train_length)
         train_op = self.train_op[index]
         if self.isTrain:
             drop_out = 1.0

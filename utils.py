@@ -64,8 +64,8 @@ def pad_seq(sys_call, seq_length):
 def pad_sys_calls(sys_calls, max_train_length, bins):
     padding_length = min(bins, key=lambda x:abs(x-max_train_length))
     for i, sys_call in enumerate(sys_calls):
-        sys_calls[i] = pad_seq(sys_call, padding_length)
-    return np.array(sys_calls)
+        sys_calls[i] = pad_seq(sys_call, bins[-1])
+    return np.array(sys_calls), padding_length
 
 
 def train_valid_split(data, labels, split_ratio):
@@ -111,7 +111,7 @@ def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, bins,
                 train_data_batch, train_label_batch, max_train_length = get_batch_data(train_data, train_label, batch_size)
                 valid_data_batch, valid_label_batch, max_valid_length = get_batch_data(valid_data, valid_label, batch_size)
                 train_data_batch_pad = pad_sys_calls(train_data_batch, max_train_length, bins)
-                valid_data_batch_pad = pad_sys_calls(valid_data_batch, max_valid_length, bins)
+                valid_data_batch_pad = pad_sys_calls(valid_data_batch, max_train_length, bins)
                 yield train_data_batch_pad, np.array(train_label_batch), valid_data_batch_pad, np.array(valid_label_batch)
     else:
         for i in range(len(data)):

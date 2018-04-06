@@ -39,16 +39,20 @@ def main():
 
         logger_path = os.path.join(model_name, str(model_no))
         logger = HistoryLogger(config)
-        train_batch_data, train_label_batch, valid_batch_data, valid_batch_label = data_gen.__next__()
+        (train_batch_data, train_length), train_label_batch, (valid_batch_data, valid_length), valid_batch_label =\
+            data_gen.__next__()
         sess.run(tf.global_variables_initializer())
         mean_train_loss = 0.0
         mean_train_accuracy = 0.0
         valid_data = []
         valid_label = []
+        valid_data_length = []
         while train_batch_data is not None:
-            train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_label_batch)
+            train_loss, train_accuracy, train_prediction = model.run_batch(sess, train_batch_data, train_length,
+                                                                           train_label_batch)
             valid_data.append(valid_batch_data)
             valid_label.append(valid_batch_label)
+            valid_data_length.append(valid_length)
             step += 1
             mean_train_loss += train_loss
             mean_train_accuracy += train_accuracy
@@ -57,7 +61,8 @@ def main():
                 mean_valid_loss, mean_valid_accuracy = 0.0, 0.0
 
                 for i in range(config.evaluate_every):
-                    valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_data[i], valid_label[i])
+                    valid_loss, valid_accuracy, valid_prediction = model.run_batch(sess, valid_data[i],
+                                                                                   valid_data_length[i], valid_label[i])
                     mean_valid_loss += valid_loss
                     mean_valid_accuracy += valid_accuracy
                     saver.save(sess, os.path.join(logger_path + '_' + str(step)), write_meta_graph=save_meta_graph)
@@ -75,10 +80,12 @@ def main():
                       " config = ", config)
                 valid_data = []
                 valid_label = []
+                valid_data_length = []
                 mean_train_loss = 0.0
                 mean_train_accuracy = 0.0
                 model.isTrain = True
-            train_batch_data, train_label_batch, valid_batch_data, valid_batch_label = data_gen.__next__()
+            (train_batch_data, train_length), train_label_batch, (valid_batch_data, valid_length), valid_batch_label = \
+                data_gen.__next__()
     end = time.time() - start
     print(model_name, train_path, labels_path, " time = ", end)
 
