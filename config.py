@@ -10,7 +10,7 @@ class Config:
         self.truncated_delta = 32
         self.vocab_size = 151
         self.embed_size = 151
-        self.evaluate_every = 100
+        self.evaluate_every = 1000
         self.bins = [10, 20, 30, 40, 50, 70, 100, 120, 150, 180, 200, 220, 250, 280, 300, 330, 350, 380, 400, 430, 450, 480, 500]
 
     def __str__(self):
