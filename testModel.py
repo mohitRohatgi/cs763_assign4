@@ -19,6 +19,7 @@ def test():
     test_path = os.path.join(os.getcwd(), 'data/test_data.txt')
     logger = HistoryLogger.load(model_name)
     best_model = logger.best_model
+    # best_model = '/home/mrohatgi/cs763_assign4/model_name/1523010750/1523010750_30200'
     graph = tf.Graph()
     config = logger.config
 
