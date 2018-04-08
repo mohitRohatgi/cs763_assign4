@@ -79,14 +79,13 @@ class Model:
 
         for rnn in self.models:
             rnn.extracted += 1
-
         self.back_count -= 1
 
         return grad_outputs[-1][1]
 
     def compute_graph_for_time_step(self, num_steps):
-        output = self._batch_norm(self.models[-1].outputs[num_steps], axes=[0])
-        # output = self.models[-1].outputs[-1]
+        # output = self._batch_norm(self.models[-1].outputs[num_steps], axes=[0])
+        output = self.models[-1].outputs[-1]
         scores = self._score(output)
         prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction_' + str(num_steps))
         loss = self.criterion.forward(scores, self.output_placeholder)

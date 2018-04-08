@@ -5,13 +5,14 @@ class Config:
         self.seq_length = 2948
         self.batch_size = 1
         self.n_layers = 1
-        self.hidden_dim = 512
+        self.hidden_dim = 100
         self.num_classes = 2
         self.truncated_delta = 32
         self.vocab_size = 151
         self.embed_size = 151
         self.evaluate_every = 1000
-        self.bins = [10, 20, 30, 40, 50, 70, 100, 120, 150, 180, 200, 220, 250, 280, 300, 330, 350, 380, 400, 430, 450, 480, 500]
+        self.bins = [10, 20, 30, 40, 50, 70, 100, 120, 150, 180, 200, 220, 250, 280,
+                     300, 330, 350, 380, 400, 430, 450, 480, 500, 550, 600, 650, 700]
 
     def __str__(self):
         return "{ lr:" + str(self.lr) + ", n_epoch = " + str(self.n_epoch) + ", batch_size = " + str(self.batch_size) +\
