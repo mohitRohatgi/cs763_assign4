@@ -1,4 +1,5 @@
 import tensorflow as tf
+import time
 
 from history_logger import HistoryLogger
 from utils import get_batch_data_iterator
@@ -14,6 +15,7 @@ def find_latest(model_name):
 
 
 def test():
+    start = time.time()
     model_name = os.path.join(os.getcwd(), 'model_name')
     model_name = find_latest(model_name)
     test_path = os.path.join(os.getcwd(), 'data/test_data.txt')
@@ -57,6 +59,7 @@ def test():
         f.write("id,label\n")
         for line_id, prediction in enumerate(all_predictions):
             f.write(str(line_id) + "," + str(prediction) + "\n")
+    print("time taken = ", time.time() - start)
 
 
 if __name__ == '__main__':
