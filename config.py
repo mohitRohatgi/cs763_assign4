@@ -1,11 +1,11 @@
 class Config:
     def __init__(self):
-        self.lr = 1e-4
+        self.lr = 1e-5
         self.n_epoch = 200
         self.seq_length = 2948
         self.batch_size = 1
         self.n_layers = 1
-        self.hidden_dim = 100
+        self.hidden_dim = 256
         self.num_classes = 2
         self.truncated_delta = 32
         self.vocab_size = 151
