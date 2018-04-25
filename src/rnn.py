@@ -13,7 +13,7 @@ class Rnn:
             self.config = Config()
             self.graph = tf.get_default_graph()
             self.initial_state = tf.get_variable(shape=[self.config.batch_size, hidden_dimension],
-                                                 name="initial_state_" + str(index), trainable=False)
+                                                 name="initial_state_" + str(index), trainable=True)
             self.initial_state_grad = None
             self.W = tf.get_variable(name="W_" + str(index), shape=[input_dimension + hidden_dimension, hidden_dimension],
                                      initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
