@@ -105,8 +105,8 @@ def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, bins,
     num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
     if label_path is not None:
         labels = load_label_data(label_path)
+        train_data, valid_data, train_label, valid_label = train_valid_split(data, labels, 0.8)
         for i in range(n_epoch):
-            train_data, valid_data, train_label, valid_label = train_valid_split(data, labels, 0.8)
             for batch_num in range(num_batches_per_epoch):
                 train_data_batch, train_label_batch, max_train_length = get_batch_data(train_data, train_label, batch_size)
                 valid_data_batch, valid_label_batch, max_valid_length = get_batch_data(valid_data, valid_label, batch_size)
