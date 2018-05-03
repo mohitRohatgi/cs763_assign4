@@ -61,11 +61,10 @@ def pad_seq(sys_call, seq_length):
     return sys_call
 
 
-def pad_sys_calls(sys_calls, max_train_length, bins):
-    padding_length = min(bins, key=lambda x:abs(x-max_train_length))
+def pad_sys_calls(sys_calls, seq_length):
     for i, sys_call in enumerate(sys_calls):
-        sys_calls[i] = pad_seq(sys_call, bins[-1])
-    return np.array(sys_calls), padding_length
+        sys_calls[i] = pad_seq(sys_call, seq_length)
+    return np.array(sys_calls)
 
 
 def train_valid_split(data, labels, split_ratio):
@@ -99,8 +98,7 @@ def get_batch_data(data, label, batch_size):
     return data_batch, label_batch, max_len
 
 
-def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, bins,
-                            label_path=None, mode='train', saved=False):
+def get_batch_data_iterator(n_epoch, data_path, batch_size, seq_length, label_path=None, mode='train', saved=False):
     data = load_data(train_path=data_path, mode=mode, saved=saved)
     num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
     if label_path is not None:
@@ -110,9 +108,9 @@ def get_batch_data_iterator(n_epoch, data_path, seq_length, batch_size, bins,
             for batch_num in range(num_batches_per_epoch):
                 train_data_batch, train_label_batch, max_train_length = get_batch_data(train_data, train_label, batch_size)
                 valid_data_batch, valid_label_batch, max_valid_length = get_batch_data(valid_data, valid_label, batch_size)
-                train_data_batch_pad = pad_sys_calls(train_data_batch, max_train_length, bins)
-                valid_data_batch_pad = pad_sys_calls(valid_data_batch, max_train_length, bins)
+                train_data_batch_pad = pad_sys_calls(train_data_batch, seq_length), max_train_length
+                valid_data_batch_pad = pad_sys_calls(valid_data_batch, seq_length), max_valid_length
                 yield train_data_batch_pad, np.array(train_label_batch), valid_data_batch_pad, np.array(valid_label_batch)
     else:
         for i in range(len(data)):
-            yield pad_sys_calls([data[i]], len(data[i]), bins)
+            yield pad_sys_calls([data[i]], seq_length), len(data[i])

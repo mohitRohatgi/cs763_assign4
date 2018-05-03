@@ -43,22 +43,20 @@ class Model:
                                      initializer=tf.zeros_initializer(), trainable=True)
 
         print('model forward starting ....')
-        for i in range(self.config.bins[-1]):
+        for i in range(self.config.seq_length):
             input_vec = tf.squeeze(self.inputs[:, i:i + 1, :], axis=1)
-            self.input_vecs.append(self.forward(input_vec))
-            if i+1 in self.config.bins:
-                print("starting backward for seq length = ", i)
-                loss, prediction_tensor, train_op, accuracy_tensor = self.compute_graph_for_time_step(i)
-                self.loss.append(loss)
-                self.prediction_tensor.append(prediction_tensor)
-                self.train_op.append(train_op)
-                self.accuracy_tensor.append(accuracy_tensor)
+            self.input_vecs.append(self.forward(input_vec, tf.less(i, self.seq_length)))
+        loss, prediction_tensor, train_op, accuracy_tensor = self.compute_graph_for_time_step(self.seq_length)
+        self.loss = loss
+        self.prediction_tensor = prediction_tensor
+        self.train_op = train_op
+        self.accuracy_tensor = accuracy_tensor
         print("time taken for model creation = ", time.time() - start)
 
-    def forward(self, input_vec):
+    def forward(self, input_vec, pred):
         print('model forward ....')
         for rnn in self.models:
-            input_vec = rnn.forward(input_vec)
+            input_vec = rnn.forward(input_vec, pred)
 
         return input_vec
 
@@ -87,19 +85,17 @@ class Model:
         # output = self._batch_norm(self.models[-1].outputs[num_steps], axes=[0])
         output = self.models[-1].outputs[-1]
         scores = self._score(output)
-        prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction_' + str(num_steps))
+        prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
         loss = self.criterion.forward(scores, self.output_placeholder)
 
         grad_output = self.criterion.backward(scores, self.output_placeholder)
         grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
         train_op = self._apply_gradients(loss)
         accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(prediction_tensor, self.output_placeholder),
-                                                 tf.float32), name='accuracy_' + str(num_steps))
+                                                 tf.float32), name='accuracy')
         return loss, prediction_tensor, train_op, accuracy_tensor
 
     def run_batch(self, sess: tf.Session, train_data, train_length, label_data=None):
-        index = self.config.bins.index(train_length)
-        train_op = self.train_op[index]
         if self.isTrain:
             drop_out = 1.0
         else:
@@ -108,28 +104,30 @@ class Model:
         if label_data is None:
             feed_dict = {
                 self.input_placeholder: train_data,
-                self.dropout_placeholder: drop_out
+                self.dropout_placeholder: drop_out,
+                self.seq_length: train_length
             }
-            return sess.run([self.prediction_tensor[index]], feed_dict)
+            return sess.run([self.prediction_tensor], feed_dict)
 
         feed_dict = {
             self.input_placeholder: train_data,
             self.output_placeholder: label_data,
-            self.dropout_placeholder: drop_out
+            self.dropout_placeholder: drop_out,
+            self.seq_length: train_length
         }
 
         if self.isTrain:
-            loss, accuracy, prediction, _ = sess.run([self.loss[index], self.accuracy_tensor[index],
-                                                      self.prediction_tensor[index], train_op], feed_dict)
+            loss, accuracy, prediction, _ = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor,
+                                                      self.train_op], feed_dict)
         else:
-            loss, accuracy, prediction = sess.run([self.loss[index], self.accuracy_tensor[index],
-                                                   self.prediction_tensor[index]], feed_dict)
+            loss, accuracy, prediction = sess.run([self.loss, self.accuracy_tensor, self.prediction_tensor], feed_dict)
         return loss, accuracy, prediction
 
     def _add_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.int32, shape=(None, None), name="input")
         self.output_placeholder = tf.placeholder(tf.int32, shape=(None, ), name="output")
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=(), name="dropout")
+        self.seq_length = tf.placeholder(tf.int32, shape=(), name="seq_length")
 
     def _one_hot_layer(self):
         one_hots = []

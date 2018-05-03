@@ -25,9 +25,9 @@ def main():
     if model_name[-1] != '/':
         model_name += '/'
     config = Config()
-    data_gen = get_batch_data_iterator(
-        n_epoch=config.n_epoch, data_path=train_path, label_path=labels_path, seq_length=config.seq_length,
-        batch_size=config.batch_size, mode='train', saved=False, bins=config.bins)
+    data_gen = get_batch_data_iterator(n_epoch=config.n_epoch, data_path=train_path, label_path=labels_path,
+                                       seq_length=config.seq_length, batch_size=config.batch_size, mode='train',
+                                       saved=False)
     model = Model(config.n_layers, config.hidden_dim, config.vocab_size, config.embed_size)
 
     with tf.Session().as_default() as sess:
@@ -74,10 +74,11 @@ def main():
                 mean_train_accuracy /= config.evaluate_every
                 logger.add(mean_train_loss, mean_train_accuracy, mean_valid_loss, mean_valid_accuracy, step)
                 logger.save(logger_path)
-                print("step = ", step, "mean valid loss = ", mean_valid_loss, " mean valid accuracy = ", mean_valid_accuracy,
-                      " config = ", config)
-                print("step = ", step, "mean train loss = ", mean_train_loss, " mean train accuracy = ", mean_train_accuracy,
-                      " config = ", config)
+                print("step = ", step, "mean valid loss = ", mean_valid_loss, " mean valid accuracy = ",
+                      mean_valid_accuracy, " config = ", config)
+                print("step = ", step, "mean train loss = ", mean_train_loss, " mean train accuracy = ",
+                      mean_train_accuracy, " config = ", config)
+                print("time taken = ", time.time() - start)
                 valid_data = []
                 valid_label = []
                 valid_data_length = []

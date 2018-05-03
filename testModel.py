@@ -5,6 +5,7 @@ from history_logger import HistoryLogger
 from utils import get_batch_data_iterator
 import os
 
+
 # TODO: copy best model to best model.
 
 
@@ -27,7 +28,7 @@ def test():
 
     # Generate batches for one epoch
     data_gen = get_batch_data_iterator(1, data_path=test_path, label_path=None, mode='test',
-                                       seq_length=config.seq_length, batch_size=config.batch_size, bins=config.bins)
+                                       seq_length=config.seq_length, batch_size=config.batch_size)
     with graph.as_default():
         sess = tf.Session(graph=graph)
         with sess.as_default():

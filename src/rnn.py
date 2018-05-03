@@ -30,17 +30,25 @@ class Rnn:
             self.back_count = -1
             self.outputs.append(self.initial_state)
 
-    def forward(self, input_vec):
+    def forward(self, input_vec, pred):
         print("rnn forward ...")
+        self.input_vec = input_vec
         with tf.variable_scope("rnn_" + str(self.index), reuse=tf.AUTO_REUSE):
-            W = tf.get_variable("W_" + str(self.index), [self.input_dimension + self.hidden_dimension,
-                                                         self.hidden_dimension])
-            B = tf.get_variable("B_" + str(self.index), [self.hidden_dimension])
-            input_concat = tf.concat([input_vec, self.outputs[-1]], axis=1)
-            state = tf.nn.tanh(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
-            self.outputs.append(tf.nn.dropout(state, self.dropout_placeholder))
+            state = tf.cond(pred=pred, true_fn=self.get_next_state, false_fn=self.copy_state)
+            self.outputs.append(state)
             self.count += 1
         return state
+
+    def get_next_state(self):
+        W = tf.get_variable("W_" + str(self.index), [self.input_dimension + self.hidden_dimension,
+                                                     self.hidden_dimension])
+        B = tf.get_variable("B_" + str(self.index), [self.hidden_dimension])
+        input_concat = tf.concat([self.input_vec, self.outputs[-1]], axis=1)
+        state = tf.nn.tanh(tf.add(tf.matmul(input_concat, W), B), name="hidden_states")
+        return tf.nn.dropout(state, self.dropout_placeholder)
+
+    def copy_state(self):
+        return self.outputs[-1]
 
     def backward(self, input_vec, grad_output, ys):
         print('rnn backward ....')
