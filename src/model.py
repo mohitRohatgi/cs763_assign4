@@ -24,7 +24,38 @@ class Model:
         self.accuracy_tensor = []
         self.train_op = []
         self.loss = []
-        self.construct_model(n_layers, h, v, d)
+        self.loss, self.prediction_tensor, self.train_op, self.accuracy_tensor = self.construct_model_from_api()
+
+    def construct_model_from_api(self):
+        self._add_placeholders()
+        inputs = self._one_hot_layer()
+
+        def rnn_cell():
+            return tf.nn.rnn_cell.BasicRNNCell(num_units=self.config.hidden_dim)
+
+        cell = tf.contrib.rnn.MultiRNNCell([rnn_cell() for _ in range(self.config.n_layers)])
+        outputs, last_states = tf.nn.dynamic_rnn(
+                cell=cell,
+                dtype=tf.float32,
+                inputs=inputs)
+        return self.add_projection(last_states[-1])
+
+    def add_projection(self, last_state):
+        with tf.variable_scope('projection', reuse=tf.AUTO_REUSE):
+            self.U = tf.get_variable(name='U', shape=[self.config.hidden_dim, self.config.num_classes],
+                                     initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
+            self.B = tf.get_variable(name='B', shape=[self.config.num_classes, ],
+                                     initializer=tf.zeros_initializer(), trainable=True)
+        scores = self._score(last_state)
+        prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
+        loss = self.criterion.forward(scores, self.output_placeholder)
+
+        # grad_output = self.criterion.backward(scores, self.output_placeholder)
+        # grad_output = tf.gradients(ys=scores, xs=self.models[-1].outputs[-1], grad_ys=grad_output)
+        train_op = self._apply_gradients(loss)
+        accuracy_tensor = tf.reduce_mean(tf.cast(tf.equal(prediction_tensor, self.output_placeholder),
+                                                 tf.float32), name='accuracy')
+        return loss, prediction_tensor, train_op, accuracy_tensor
 
     def construct_model(self, n_layers, h, v, d):
         start = time.time()
@@ -83,8 +114,7 @@ class Model:
 
     def compute_graph_for_time_step(self, num_steps):
         # output = self._batch_norm(self.models[-1].outputs[num_steps], axes=[0])
-        output = self.models[-1].outputs[-1]
-        scores = self._score(output)
+        scores = self._score(self.models[-1].outputs[-1])
         prediction_tensor = tf.cast(tf.argmax(scores, axis=1), tf.int32, name='prediction')
         loss = self.criterion.forward(scores, self.output_placeholder)
 
